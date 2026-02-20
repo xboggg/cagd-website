@@ -12,6 +12,8 @@ import MissionVision from "@/pages/about/MissionVision";
 import CoreValues from "@/pages/about/CoreValues";
 import CoreFunctions from "@/pages/about/CoreFunctions";
 import OurHistory from "@/pages/about/OurHistory";
+import Leadership from "@/pages/management/Leadership";
+import RegionalDirectors from "@/pages/management/RegionalDirectors";
 
 const queryClient = new QueryClient();
 
@@ -33,8 +35,8 @@ const App = () => (
             <Route path="/about/history" element={<OurHistory />} />
 
             {/* Management */}
-            <Route path="/management/leadership" element={<PlaceholderPage title="Leadership" />} />
-            <Route path="/management/regional-directors" element={<PlaceholderPage title="Regional Directors" />} />
+            <Route path="/management/leadership" element={<Leadership />} />
+            <Route path="/management/regional-directors" element={<RegionalDirectors />} />
 
             {/* Divisions */}
             <Route path="/divisions/finance-administration" element={<PlaceholderPage title="Finance & Administration Division" />} />
