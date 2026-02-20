@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Send, Facebook, Twitter, Youtube, Globe } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +64,7 @@ export default function Contact() {
 
   return (
     <>
+      <SEOHead title="Contact Us" description="Get in touch with the Controller and Accountant-General's Department. Find regional office contacts." path="/contact" />
       <section className="bg-accent text-accent-foreground py-12 md:py-20">
         <div className="container">
           <motion.h1

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Flag, Building, FileCheck, Landmark, Cpu, Award, Users, Wifi } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ const cags = [
 export default function OurHistory() {
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="Our History" description="From 'The Treasury' in 1885 to a modern digital financial management powerhouse — over 140 years of service to Ghana." path="/about/history" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <FadeIn>

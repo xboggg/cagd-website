@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Target, Eye, Lightbulb, TrendingUp, Globe, Cpu } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,7 +23,7 @@ const missionPillars = [
 export default function MissionVision() {
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="Mission & Vision" description="Guiding principles that drive CAGD's commitment to public financial management excellence." path="/about/mission-vision" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <FadeIn>

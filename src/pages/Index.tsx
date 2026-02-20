@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
-import { ArrowRight, FileText, Users, MapPin, BarChart3, Shield, Landmark, Globe, CreditCard, BookOpen, Calendar, ExternalLink } from "lucide-react";
+import { ArrowRight, FileText, Users, MapPin, BarChart3, Shield, Landmark, Globe, CreditCard, BookOpen, Calendar, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import SEOHead from "@/components/SEOHead";
 
 /* ─── Animated counter ─── */
 function Counter({ end, suffix = "", label }: { end: number; suffix?: string; label: string }) {
@@ -26,9 +30,7 @@ function Counter({ end, suffix = "", label }: { end: number; suffix?: string; la
 
   return (
     <div ref={ref} className="text-center">
-      <p className="text-4xl md:text-5xl font-heading font-bold text-primary">
-        {count}{suffix}
-      </p>
+      <p className="text-4xl md:text-5xl font-heading font-bold text-primary">{count}{suffix}</p>
       <p className="mt-2 text-sm text-muted-foreground font-medium">{label}</p>
     </div>
   );
@@ -39,38 +41,16 @@ function FadeInSection({ children, className = "", delay = 0 }: { children: Reac
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-50px" });
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay }}
-      className={className}
-    >
+    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay }} className={className}>
       {children}
     </motion.div>
   );
 }
 
-/* ─── Hero slides ─── */
 const heroSlides = [
-  {
-    title: "Public Financial Management Excellence",
-    subtitle: "Providing efficient financial management services to the Government and people of Ghana since 1885.",
-    cta: "Learn More",
-    ctaLink: "/about/who-we-are",
-  },
-  {
-    title: "Transparency & Accountability",
-    subtitle: "Whole-of-Government accounts aligned with international standards — Ghana leads in Africa.",
-    cta: "View Reports",
-    ctaLink: "/reports",
-  },
-  {
-    title: "Digital Transformation",
-    subtitle: "GIFMIS, e-Payslip, TPRS — modernizing government financial systems across 703 MDA units.",
-    cta: "Our Projects",
-    ctaLink: "/projects/pfmrp",
-  },
+  { title: "Public Financial Management Excellence", subtitle: "Providing efficient financial management services to the Government and people of Ghana since 1885.", cta: "Learn More", ctaLink: "/about/who-we-are" },
+  { title: "Transparency & Accountability", subtitle: "Whole-of-Government accounts aligned with international standards — Ghana leads in Africa.", cta: "View Reports", ctaLink: "/reports" },
+  { title: "Digital Transformation", subtitle: "GIFMIS, e-Payslip, TPRS — modernizing government financial systems across 703 MDA units.", cta: "Our Projects", ctaLink: "/projects/pfmrp" },
 ];
 
 const coreFunctions = [
@@ -98,26 +78,59 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
+  const { data: latestNews = [] } = useQuery({
+    queryKey: ["home-latest-news"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("news")
+        .select("id, title, category, publish_date, featured_image, content")
+        .eq("status", "published")
+        .order("publish_date", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: upcomingEvents = [] } = useQuery({
+    queryKey: ["home-upcoming-events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, event_date, venue")
+        .eq("status", "published")
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true })
+        .limit(3);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <>
+      <SEOHead
+        title="Home"
+        description="Controller & Accountant-General's Department — Ghana's premier public financial management institution since 1885."
+        path="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "GovernmentOrganization",
+          name: "Controller & Accountant-General's Department",
+          alternateName: "CAGD",
+          url: "https://cagd.gov.gh",
+          description: "Ghana's premier public financial management institution since 1885.",
+          address: { "@type": "PostalAddress", addressCountry: "GH", addressLocality: "Accra", streetAddress: "P.O. Box M79, Ministries" },
+        }}
+      />
+
       {/* ─── HERO ─── */}
       <section className="relative bg-accent overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent via-accent/95 to-primary/30" />
         <div className="container relative z-10 py-20 md:py-32">
-          <motion.div
-            key={currentSlide}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-2xl"
-          >
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-tight">
-              {heroSlides[currentSlide].title}
-            </h1>
-            <p className="mt-4 md:mt-6 text-base md:text-lg text-white/80 leading-relaxed">
-              {heroSlides[currentSlide].subtitle}
-            </p>
+          <motion.div key={currentSlide} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.6 }} className="max-w-2xl">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-tight">{heroSlides[currentSlide].title}</h1>
+            <p className="mt-4 md:mt-6 text-base md:text-lg text-white/80 leading-relaxed">{heroSlides[currentSlide].subtitle}</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link to={heroSlides[currentSlide].ctaLink}>
                 <Button className="bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-8 py-3 h-auto font-heading font-semibold text-base">
@@ -125,21 +138,13 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link to="/contact">
-                <Button variant="outline" className="rounded-full px-8 py-3 h-auto border-white/30 text-white hover:bg-white/10 font-heading">
-                  Contact Us
-                </Button>
+                <Button variant="outline" className="rounded-full px-8 py-3 h-auto border-white/30 text-white hover:bg-white/10 font-heading">Contact Us</Button>
               </Link>
             </div>
           </motion.div>
-
-          {/* Slide indicators */}
           <div className="flex gap-2 mt-10">
             {heroSlides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`h-2 rounded-full transition-all duration-300 ${i === currentSlide ? "w-8 bg-secondary" : "w-2 bg-white/30"}`}
-              />
+              <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2 rounded-full transition-all duration-300 ${i === currentSlide ? "w-8 bg-secondary" : "w-2 bg-white/30"}`} />
             ))}
           </div>
         </div>
@@ -160,9 +165,7 @@ export default function HomePage() {
       {/* ─── CORE FUNCTIONS ─── */}
       <section className="py-16 md:py-20">
         <div className="container">
-          <FadeInSection>
-            <h2 className="section-heading mb-10">Our Core Functions</h2>
-          </FadeInSection>
+          <FadeInSection><h2 className="section-heading mb-10">Our Core Functions</h2></FadeInSection>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {coreFunctions.map((fn, i) => (
               <FadeInSection key={fn.title} delay={i * 0.08}>
@@ -182,18 +185,11 @@ export default function HomePage() {
       {/* ─── E-SERVICES ─── */}
       <section className="py-16 md:py-20 bg-accent text-accent-foreground">
         <div className="container">
-          <FadeInSection>
-            <h2 className="section-heading border-secondary text-white mb-10">e-Services</h2>
-          </FadeInSection>
+          <FadeInSection><h2 className="section-heading border-secondary text-white mb-10">e-Services</h2></FadeInSection>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {eServices.map((s, i) => (
               <FadeInSection key={s.title} delay={i * 0.1}>
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block p-6 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/15 transition-colors group"
-                >
+                <a href={s.url} target="_blank" rel="noreferrer" className="block p-6 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/15 transition-colors group">
                   <s.icon className="h-8 w-8 text-secondary mb-4" />
                   <h3 className="font-heading font-bold text-lg text-white mb-2 flex items-center gap-2">
                     {s.title} <ExternalLink className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -206,31 +202,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── LATEST NEWS (placeholder) ─── */}
+      {/* ─── LATEST NEWS ─── */}
       <section className="py-16 md:py-20">
         <div className="container">
           <FadeInSection>
             <div className="flex items-center justify-between mb-10">
               <h2 className="section-heading">Latest News</h2>
-              <Link to="/news" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
+              <Link to="/news" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">View All <ArrowRight className="h-3 w-3" /></Link>
             </div>
           </FadeInSection>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
+            {latestNews.length > 0 ? latestNews.map((article, i) => (
+              <FadeInSection key={article.id} delay={i * 0.1}>
+                <div className="card-elevated overflow-hidden group">
+                  <div className="h-48 bg-muted overflow-hidden">
+                    {article.featured_image ? (
+                      <img src={article.featured_image} alt={article.title} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                        <Calendar className="w-12 h-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <Badge variant="secondary" className="text-xs">{article.category}</Badge>
+                    <h3 className="font-heading font-semibold mt-3 mb-2 group-hover:text-primary transition-colors">{article.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{article.content?.slice(0, 100)}...</p>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {article.publish_date ? new Date(article.publish_date).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : ""}
+                    </p>
+                  </div>
+                </div>
+              </FadeInSection>
+            )) : [1, 2, 3].map((i) => (
               <FadeInSection key={i} delay={i * 0.1}>
                 <div className="card-elevated overflow-hidden group">
                   <div className="h-48 bg-muted" />
                   <div className="p-5">
-                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">Announcements</span>
-                    <h3 className="font-heading font-semibold mt-3 mb-2 group-hover:text-primary transition-colors">
-                      News headline placeholder {i}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      This is a placeholder for news content that will be loaded from the database.
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-3">February 2026</p>
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">No news yet</span>
+                    <h3 className="font-heading font-semibold mt-3 mb-2 text-muted-foreground">News coming soon</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">Check back for the latest updates from CAGD.</p>
                   </div>
                 </div>
               </FadeInSection>
@@ -239,32 +250,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── EVENTS (placeholder) ─── */}
+      {/* ─── EVENTS ─── */}
       <section className="py-16 md:py-20 bg-muted">
         <div className="container">
           <FadeInSection>
             <div className="flex items-center justify-between mb-10">
               <h2 className="section-heading">Upcoming Events</h2>
-              <Link to="/events" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
+              <Link to="/events" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">View All <ArrowRight className="h-3 w-3" /></Link>
             </div>
           </FadeInSection>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[1, 2].map((i) => (
-              <FadeInSection key={i} delay={i * 0.1}>
+            {upcomingEvents.length > 0 ? upcomingEvents.slice(0, 2).map((event, i) => (
+              <FadeInSection key={event.id} delay={i * 0.1}>
                 <div className="card-elevated p-6 flex gap-4">
                   <div className="shrink-0 w-16 h-16 rounded-lg bg-primary flex flex-col items-center justify-center text-primary-foreground">
                     <Calendar className="h-5 w-5" />
-                    <span className="text-xs font-bold mt-0.5">APR</span>
+                    <span className="text-xs font-bold mt-0.5">
+                      {event.event_date ? new Date(event.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase() : "TBD"}
+                    </span>
                   </div>
                   <div>
-                    <h3 className="font-heading font-semibold mb-1">CAGD Annual Conference 2025</h3>
-                    <p className="text-sm text-muted-foreground">Ho Technical University — April 24-25, 2025</p>
+                    <h3 className="font-heading font-semibold mb-1">{event.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {event.venue} — {event.event_date ? new Date(event.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                    </p>
                   </div>
                 </div>
               </FadeInSection>
-            ))}
+            )) : (
+              <FadeInSection>
+                <div className="card-elevated p-6 text-center text-muted-foreground col-span-2">
+                  No upcoming events. Check back soon!
+                </div>
+              </FadeInSection>
+            )}
           </div>
         </div>
       </section>
