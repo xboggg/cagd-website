@@ -14,6 +14,12 @@ import CoreFunctions from "@/pages/about/CoreFunctions";
 import OurHistory from "@/pages/about/OurHistory";
 import Leadership from "@/pages/management/Leadership";
 import RegionalDirectors from "@/pages/management/RegionalDirectors";
+import FinanceAdministration from "@/pages/divisions/FinanceAdministration";
+import Treasury from "@/pages/divisions/Treasury";
+import FMS from "@/pages/divisions/FMS";
+import ICT from "@/pages/divisions/ICT";
+import Payroll from "@/pages/divisions/Payroll";
+import Audit from "@/pages/divisions/Audit";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +45,12 @@ const App = () => (
             <Route path="/management/regional-directors" element={<RegionalDirectors />} />
 
             {/* Divisions */}
-            <Route path="/divisions/finance-administration" element={<PlaceholderPage title="Finance & Administration Division" />} />
-            <Route path="/divisions/treasury" element={<PlaceholderPage title="Treasury Division" />} />
-            <Route path="/divisions/fms" element={<PlaceholderPage title="Financial Management Services" />} />
-            <Route path="/divisions/ict" element={<PlaceholderPage title="ICT Management Division" />} />
-            <Route path="/divisions/payroll" element={<PlaceholderPage title="Payroll Management Division" />} />
-            <Route path="/divisions/audit" element={<PlaceholderPage title="Audit & Investigation Division" />} />
+            <Route path="/divisions/finance-administration" element={<FinanceAdministration />} />
+            <Route path="/divisions/treasury" element={<Treasury />} />
+            <Route path="/divisions/fms" element={<FMS />} />
+            <Route path="/divisions/ict" element={<ICT />} />
+            <Route path="/divisions/payroll" element={<Payroll />} />
+            <Route path="/divisions/audit" element={<Audit />} />
 
             {/* Projects */}
             <Route path="/projects/pfmrp" element={<PlaceholderPage title="Public Financial Management Reform Project (PFMRP)" />} />
