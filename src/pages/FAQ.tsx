@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { HelpCircle } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 const faqSections = [
   {
@@ -47,6 +48,7 @@ const faqSections = [
 export default function FAQ() {
   return (
     <>
+      <SEOHead title="FAQ" description="Find answers to common questions about CAGD services, systems, and procedures." path="/faq" />
       <section className="bg-accent text-accent-foreground py-12 md:py-20">
         <div className="container">
           <motion.h1

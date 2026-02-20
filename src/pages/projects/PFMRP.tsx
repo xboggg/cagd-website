@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, TrendingUp, Shield, BarChart3, FileText, Users, Database } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 const components = [
   {
@@ -60,7 +61,7 @@ export default function PFMRP() {
 
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="PFMRP" description="Public Financial Management Reform Project — modernizing Ghana's financial management systems." path="/projects/pfmrp" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <motion.h1

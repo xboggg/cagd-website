@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { CreditCard, Shield, Users, Landmark, BookOpen, BarChart3, Globe, FileText } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -66,7 +67,7 @@ const functions = [
 export default function CoreFunctions() {
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="Core Functions" description="Eight core functions defined by the Public Financial Management Act, 2016 (Act 921)." path="/about/core-functions" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <FadeIn>

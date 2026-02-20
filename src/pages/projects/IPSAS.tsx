@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, BookOpen, Target, Award } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 const standards = [
   { id: 1, name: "Presentation of Financial Statements", adopted: true },
@@ -48,7 +49,7 @@ export default function IPSAS() {
 
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="IPSAS Implementation" description="Ghana's transition to International Public Sector Accounting Standards — 31 of 36 standards adopted." path="/projects/ipsas" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <motion.h1

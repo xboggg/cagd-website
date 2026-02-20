@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Building2, Users, Globe, Award, TrendingUp, Shield } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -36,7 +37,7 @@ const highlights = [
 export default function WhoWeAre() {
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="Who We Are" description="Ghana's premier public financial management institution, established in 1885 and serving the nation for over 140 years." path="/about/who-we-are" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <FadeIn>

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { Heart, Globe, ShieldCheck, Users, Sparkles } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -95,7 +96,7 @@ function ValueCard({ value, index }: { value: typeof values[0]; index: number })
 export default function CoreValues() {
   return (
     <>
-      {/* Hero */}
+      <SEOHead title="Core Values" description="Five guiding principles that shape how CAGD serves Ghana's public financial management needs." path="/about/core-values" />
       <section className="bg-accent text-accent-foreground py-16 md:py-24">
         <div className="container">
           <FadeIn>
