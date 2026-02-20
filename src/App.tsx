@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import PlaceholderPage from "@/components/PlaceholderPage";
 import WhoWeAre from "@/pages/about/WhoWeAre";
 import MissionVision from "@/pages/about/MissionVision";
 import CoreValues from "@/pages/about/CoreValues";
@@ -20,6 +19,14 @@ import FMS from "@/pages/divisions/FMS";
 import ICT from "@/pages/divisions/ICT";
 import Payroll from "@/pages/divisions/Payroll";
 import Audit from "@/pages/divisions/Audit";
+import PFMRP from "@/pages/projects/PFMRP";
+import IPSAS from "@/pages/projects/IPSAS";
+import News from "@/pages/News";
+import Events from "@/pages/Events";
+import Reports from "@/pages/Reports";
+import Gallery from "@/pages/Gallery";
+import Contact from "@/pages/Contact";
+import FAQ from "@/pages/FAQ";
 
 const queryClient = new QueryClient();
 
@@ -53,26 +60,22 @@ const App = () => (
             <Route path="/divisions/audit" element={<Audit />} />
 
             {/* Projects */}
-            <Route path="/projects/pfmrp" element={<PlaceholderPage title="Public Financial Management Reform Project (PFMRP)" />} />
-            <Route path="/projects/ipsas" element={<PlaceholderPage title="IPSAS Implementation" />} />
+            <Route path="/projects/pfmrp" element={<PFMRP />} />
+            <Route path="/projects/ipsas" element={<IPSAS />} />
 
             {/* News & Events */}
-            <Route path="/news" element={<PlaceholderPage title="News & Updates" />} />
-            <Route path="/news/:slug" element={<PlaceholderPage title="News Article" />} />
-            <Route path="/events" element={<PlaceholderPage title="Events" />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/events" element={<Events />} />
 
-            {/* Reports */}
-            <Route path="/reports" element={<PlaceholderPage title="Reports & Documents" />} />
-
-            {/* Gallery */}
-            <Route path="/gallery" element={<PlaceholderPage title="Gallery" />} />
+            {/* Reports & Gallery */}
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/gallery" element={<Gallery />} />
 
             {/* Contact & FAQ */}
-            <Route path="/contact" element={<PlaceholderPage title="Contact Us" />} />
-            <Route path="/faq" element={<PlaceholderPage title="Frequently Asked Questions" />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
           </Route>
 
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
