@@ -7,6 +7,11 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "@/components/PlaceholderPage";
+import WhoWeAre from "@/pages/about/WhoWeAre";
+import MissionVision from "@/pages/about/MissionVision";
+import CoreValues from "@/pages/about/CoreValues";
+import CoreFunctions from "@/pages/about/CoreFunctions";
+import OurHistory from "@/pages/about/OurHistory";
 
 const queryClient = new QueryClient();
 
@@ -21,11 +26,11 @@ const App = () => (
             <Route path="/" element={<Index />} />
 
             {/* About */}
-            <Route path="/about/who-we-are" element={<PlaceholderPage title="Who We Are" description="Learn about the Controller & Accountant-General's Department, established in 1885." />} />
-            <Route path="/about/mission-vision" element={<PlaceholderPage title="Mission & Vision" />} />
-            <Route path="/about/core-values" element={<PlaceholderPage title="Core Values" />} />
-            <Route path="/about/core-functions" element={<PlaceholderPage title="Core Functions" />} />
-            <Route path="/about/history" element={<PlaceholderPage title="Our History" description="From 'The Treasury' in 1885 to the modern CAGD." />} />
+            <Route path="/about/who-we-are" element={<WhoWeAre />} />
+            <Route path="/about/mission-vision" element={<MissionVision />} />
+            <Route path="/about/core-values" element={<CoreValues />} />
+            <Route path="/about/core-functions" element={<CoreFunctions />} />
+            <Route path="/about/history" element={<OurHistory />} />
 
             {/* Management */}
             <Route path="/management/leadership" element={<PlaceholderPage title="Leadership" />} />
