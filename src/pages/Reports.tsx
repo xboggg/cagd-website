@@ -53,7 +53,7 @@ function GlowDownloadButton({ fileUrl, reportId }: { fileUrl: string; reportId: 
   const handleDownload = async () => {
     // fire-and-forget increment
     supabase.rpc("cagd_increment_download", { report_id: reportId }).then();
-    const resolvedUrl = fileUrl.startsWith("http") ? fileUrl : fileUrl.startsWith("/new-site") ? fileUrl : `/new-site${fileUrl}`;
+    const resolvedUrl = fileUrl.startsWith("http") ? fileUrl : fileUrl;
     try {
       // Fetch as blob to force download even for cross-origin URLs
       const res = await fetch(resolvedUrl);
@@ -242,7 +242,7 @@ export default function Reports() {
       <section
         className="relative py-16 md:py-24 text-white overflow-hidden"
         style={{
-          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/news-hero.webp')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

@@ -149,7 +149,7 @@ export default function FMS() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/new-site/images/divisions/fms-hero.webp"
+        backgroundImage="/images/divisions/fms-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -283,7 +283,7 @@ export default function FMS() {
               <DialogTrigger asChild>
                 <button className="group relative block mx-auto max-w-4xl w-full rounded-2xl overflow-hidden shadow-lg border bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary">
                   <img
-                    src="/new-site/images/divisions/FMS_Final_OHCS-2048x1448.jpeg"
+                    src="/images/divisions/FMS_Final_OHCS-2048x1448.jpeg"
                     alt="Financial Management Services Division Organogram"
                     className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                   />
@@ -296,7 +296,7 @@ export default function FMS() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] md:max-w-[85vw] lg:max-w-6xl p-2 bg-white">
                 <img
-                  src="/new-site/images/divisions/FMS_Final_OHCS-2048x1448.jpeg"
+                  src="/images/divisions/FMS_Final_OHCS-2048x1448.jpeg"
                   alt="Financial Management Services Division Organogram (Full Size)"
                   className="w-full h-auto rounded-lg"
                 />
@@ -406,7 +406,7 @@ export default function FMS() {
       >
         {/* gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-secondary to-yellow-500" />
-        <div className="absolute inset-0 bg-[url('/new-site/images/divisions/fms-hero.webp')] bg-cover bg-center opacity-10" />
+        <div className="absolute inset-0 bg-[url('/images/divisions/fms-hero.webp')] bg-cover bg-center opacity-10" />
 
         <div className="container relative z-10 text-center text-white">
           <motion.div style={{ y: quoteY }}>

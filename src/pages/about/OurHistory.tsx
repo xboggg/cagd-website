@@ -129,7 +129,7 @@ export default function OurHistory() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/hero/news-hero.webp"
+        backgroundImage="/images/hero/news-hero.webp"
         overlayOpacity={0.6}
         height="h-[500px] md:h-[600px]"
       >

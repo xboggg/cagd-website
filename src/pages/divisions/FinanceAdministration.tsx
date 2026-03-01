@@ -177,7 +177,7 @@ export default function FinanceAdministration() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/new-site/images/divisions/fa-hero.webp"
+        backgroundImage="/images/divisions/fa-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -296,7 +296,7 @@ export default function FinanceAdministration() {
               <DialogTrigger asChild>
                 <button className="group relative w-full rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-zoom-in">
                   <img
-                    src="/new-site/images/divisions/FA_Final_OHCS-2048x1448.jpeg"
+                    src="/images/divisions/FA_Final_OHCS-2048x1448.jpeg"
                     alt="Finance & Administration Division Organogram"
                     className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                   />
@@ -311,7 +311,7 @@ export default function FinanceAdministration() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] p-2 md:p-4">
                 <img
-                  src="/new-site/images/divisions/FA_Final_OHCS-2048x1448.jpeg"
+                  src="/images/divisions/FA_Final_OHCS-2048x1448.jpeg"
                   alt="Finance & Administration Division Organogram (Full Size)"
                   className="w-full h-auto rounded-lg"
                 />

@@ -95,7 +95,7 @@ export default function CoreFunctions() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/hero/cag-hero.webp"
+        backgroundImage="/images/hero/cag-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

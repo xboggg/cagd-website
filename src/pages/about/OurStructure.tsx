@@ -106,7 +106,7 @@ export default function OurStructure() {
       <SEOHead title="Our Structure" description="CAGD operates through 6 specialized divisions comprising 21 directorates, delivering comprehensive public financial management across Ghana." path="/about/structure" />
 
       {/* ── Hero ── */}
-      <ParallaxHero backgroundImage="/new-site/images/hero/news-hero.webp" overlayOpacity={0.6} height="h-[500px] md:h-[600px]">
+      <ParallaxHero backgroundImage="/images/hero/news-hero.webp" overlayOpacity={0.6} height="h-[500px] md:h-[600px]">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
           <motion.div initial={{ width: 0 }} animate={{ width: "5rem" }} transition={{ delay: 0.3, duration: 0.6 }} className="h-1 bg-secondary rounded-full mb-6" />
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-tight">{t("ourStructure.title")}</h1>

@@ -188,7 +188,7 @@ export default function NewsDetail() {
                       <button
                         onClick={async () => {
                           const rawUrl = (article as any).file_url as string;
-                          const resolvedUrl = rawUrl.startsWith("http") ? rawUrl : rawUrl.startsWith("/new-site") ? rawUrl : `/new-site${rawUrl}`;
+                          const resolvedUrl = rawUrl.startsWith("http") ? rawUrl : rawUrl;
                           try {
                             const res = await fetch(resolvedUrl);
                             const blob = await res.blob();

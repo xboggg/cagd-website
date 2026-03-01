@@ -1,8 +1,8 @@
 const CACHE_NAME = 'cagd-v1';
 const STATIC_ASSETS = [
-  '/new-site/',
-  '/new-site/cagd-logo.png',
-  '/new-site/favicon.png',
+  '/',
+  '/cagd-logo.png',
+  '/favicon.png',
 ];
 
 // Install — cache static assets
@@ -58,6 +58,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/new-site/')))
+      .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
   );
 });

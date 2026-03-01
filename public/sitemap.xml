@@ -1,41 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://cagd.gov.gh/new-site/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://cagd.gov.gh/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
 
   <!-- About -->
-  <url><loc>https://cagd.gov.gh/new-site/about/who-we-are</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/about/mission-vision</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/about/structure</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/about/core-functions</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/about/history</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/about/who-we-are</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cagd.gov.gh/about/mission-vision</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/about/structure</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/about/core-functions</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/about/history</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- Management -->
-  <url><loc>https://cagd.gov.gh/new-site/management/leadership</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/management/regional-directors</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/management/leadership</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cagd.gov.gh/management/regional-directors</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
   <!-- Divisions -->
-  <url><loc>https://cagd.gov.gh/new-site/divisions/finance-administration</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/divisions/treasury</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/divisions/fms</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/divisions/ict</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/divisions/payroll</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/divisions/audit</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/finance-administration</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/treasury</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/fms</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/ict</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/payroll</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/divisions/audit</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- Projects -->
-  <url><loc>https://cagd.gov.gh/new-site/projects</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/projects/pfmrp</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/projects/ipsas</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/projects</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/projects/pfmrp</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/projects/ipsas</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- News -->
-  <url><loc>https://cagd.gov.gh/new-site/news</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/news/press-releases</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/news/digest</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/news/treasury</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/news</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://cagd.gov.gh/news/press-releases</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cagd.gov.gh/news/digest</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/news/treasury</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 
   <!-- Events & Resources -->
-  <url><loc>https://cagd.gov.gh/new-site/events</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/reports</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/gallery</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/contact</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cagd.gov.gh/new-site/faq</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://cagd.gov.gh/events</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cagd.gov.gh/reports</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://cagd.gov.gh/gallery</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://cagd.gov.gh/contact</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cagd.gov.gh/faq</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>

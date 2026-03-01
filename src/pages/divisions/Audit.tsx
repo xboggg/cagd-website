@@ -146,7 +146,7 @@ export default function Audit() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/divisions/audit-hero.webp"
+        backgroundImage="/images/divisions/audit-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -277,7 +277,7 @@ export default function Audit() {
                   className="relative group cursor-pointer rounded-2xl overflow-hidden border border-border shadow-lg"
                 >
                   <img
-                    src="/new-site/images/divisions/Audit_Final_OHCS-2048x1448.jpeg"
+                    src="/images/divisions/Audit_Final_OHCS-2048x1448.jpeg"
                     alt="Audit & Investigation Division Organogram"
                     className="w-full h-auto"
                     loading="lazy"
@@ -291,7 +291,7 @@ export default function Audit() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 overflow-auto">
                 <img
-                  src="/new-site/images/divisions/Audit_Final_OHCS-2048x1448.jpeg"
+                  src="/images/divisions/Audit_Final_OHCS-2048x1448.jpeg"
                   alt="Audit & Investigation Division Organogram — Full Size"
                   className="w-full h-auto"
                 />

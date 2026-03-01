@@ -363,7 +363,7 @@ const downloads = [
   { title: "Chart of Accounts 2019 (4th Edition)", type: "XLSX", file: "chart-of-accounts-2019-4th-edition-%281%29.xlsx" },
 ];
 
-const BASE_DL = "http://38.242.195.0/new-site/reports-files/";
+const BASE_DL = "https://cagd.gov.gh/reports-files/";
 
 export default function PFMRP() {
   const { t } = useTranslation();
@@ -383,7 +383,7 @@ export default function PFMRP() {
       <section ref={heroRef} className="relative h-[480px] md:h-[560px] flex items-center overflow-hidden">
         <motion.div style={{ y: heroY }} className="absolute inset-0 w-full h-[140%] -top-[20%]">
           <img
-            src="/new-site/images/hero/pfmrp-hero.webp"
+            src="/images/hero/pfmrp-hero.webp"
             alt=""
             className="w-full h-full object-cover"
           />
@@ -560,7 +560,7 @@ export default function PFMRP() {
       {/* ── Impact Image Break ── */}
       <section className="relative h-[300px] md:h-[400px] flex items-center overflow-hidden">
         <img
-          src="/new-site/images/hero/pfmrp-banner.webp"
+          src="/images/hero/pfmrp-banner.webp"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />

@@ -171,7 +171,7 @@ export default function Treasury() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/new-site/images/divisions/treasury-hero.webp"
+        backgroundImage="/images/divisions/treasury-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -324,7 +324,7 @@ export default function Treasury() {
               <DialogTrigger asChild>
                 <button className="group relative w-full rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-zoom-in">
                   <img
-                    src="/new-site/images/divisions/Treasury_Final_OHCS-2048x1448.jpeg"
+                    src="/images/divisions/Treasury_Final_OHCS-2048x1448.jpeg"
                     alt="Treasury Division Organogram"
                     className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                   />
@@ -339,7 +339,7 @@ export default function Treasury() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] p-2 md:p-4">
                 <img
-                  src="/new-site/images/divisions/Treasury_Final_OHCS-2048x1448.jpeg"
+                  src="/images/divisions/Treasury_Final_OHCS-2048x1448.jpeg"
                   alt="Treasury Division Organogram (Full Size)"
                   className="w-full h-auto rounded-lg"
                 />

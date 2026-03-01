@@ -118,37 +118,37 @@ export default function HomePage() {
 
   const heroSlides = [
     {
-      image: "/new-site/images/hero/hero-3.webp",
+      image: "/images/hero/hero-3.webp",
       title: t("home.heroTitle1"),
       subtitle: t("home.heroSubtitle1"),
       cta: { label: t("home.heroCTA1"), link: "/about/who-we-are" },
     },
     {
-      image: "/new-site/images/hero/hero-1.webp",
+      image: "/images/hero/hero-1.webp",
       title: t("home.heroTitle2"),
       subtitle: t("home.heroSubtitle2"),
       cta: { label: t("nav.leadership"), link: "/management/leadership" },
     },
     {
-      image: "/new-site/images/hero/hero-5.webp",
+      image: "/images/hero/hero-5.webp",
       title: t("home.heroTitle4"),
       subtitle: t("home.heroSubtitle4"),
       cta: { label: t("home.heroCTA4"), link: "/reports" },
     },
     {
-      image: "/new-site/images/hero/hero-4.webp",
+      image: "/images/hero/hero-4.webp",
       title: t("home.heroTitle5"),
       subtitle: t("home.heroSubtitle5"),
       cta: { label: t("home.heroCTA5"), link: "/about/structure" },
     },
     {
-      image: "/new-site/images/hero/hero-2.webp",
+      image: "/images/hero/hero-2.webp",
       title: t("home.heroTitle6"),
       subtitle: t("home.heroSubtitle6"),
       cta: { label: t("home.heroCTA6"), link: "/about/structure" },
     },
     {
-      image: "/new-site/images/hero/hero-6.webp",
+      image: "/images/hero/hero-6.webp",
       title: t("home.heroTitle7"),
       subtitle: t("home.heroSubtitle7"),
       cta: { label: t("home.heroCTA7"), link: "#e-services" },
@@ -491,7 +491,7 @@ export default function HomePage() {
                   className="rounded-2xl overflow-hidden shadow-2xl"
                 >
                   <img
-                    src="/new-site/images/hero/hero-3.webp"
+                    src="/images/hero/hero-3.webp"
                     alt="CAGD Head Office"
                     className="w-full h-[250px] sm:h-[400px] object-cover"
                     loading="lazy"
@@ -529,7 +529,7 @@ export default function HomePage() {
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover"
         >
-          <source src="/new-site/images/hero/hero-bg.mp4" type="video/mp4" />
+          <source src="/images/hero/hero-bg.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-accent/85" />
         <div className="container relative z-10">
@@ -895,7 +895,7 @@ export default function HomePage() {
                         </Link>
                         {(digestIssues[0] as any).file_url && (
                           <a
-                            href={(digestIssues[0] as any).file_url.startsWith("/new-site") ? (digestIssues[0] as any).file_url : `/new-site${(digestIssues[0] as any).file_url}`}
+                            href={(digestIssues[0] as any).file_url}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center justify-center gap-2 bg-secondary/10 hover:bg-secondary hover:text-white text-secondary text-xs font-semibold py-2.5 px-4 rounded-xl transition-colors duration-200"
@@ -930,7 +930,7 @@ export default function HomePage() {
       {/* ═══ 10 · LEADERSHIP QUOTE — PARALLAX ══════════════════════ */}
       <section ref={quoteRef} className="relative py-24 md:py-32 overflow-hidden">
         <motion.div className="absolute inset-0" style={{ y: quoteY }}>
-          <img src="/new-site/images/hero/hero-5.webp" alt="" className="w-full h-[140%] object-cover" loading="lazy" />
+          <img src="/images/hero/hero-5.webp" alt="" className="w-full h-[140%] object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-accent/90" />
         </motion.div>
         <div className="container relative z-10 text-center max-w-4xl mx-auto">

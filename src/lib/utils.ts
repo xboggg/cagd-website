@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Resolves a database image path to the correct URL for the current base path.
- * Handles /new-site/ subdirectory deployment.
+ * Handles root domain deployment.
  */
 /** Strip HTML tags and decode entities from a string (for displaying excerpts). */
 export function stripHtml(html: string): string {

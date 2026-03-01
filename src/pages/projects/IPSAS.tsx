@@ -133,7 +133,7 @@ const benefits = [
   { icon: Globe, title: "International Comparability", desc: "Better comparison of financial statements among countries." },
 ];
 
-const BASE_DL = "http://38.242.195.0/new-site/reports-files/";
+const BASE_DL = "https://cagd.gov.gh/reports-files/";
 
 const downloadGroups = [
   {

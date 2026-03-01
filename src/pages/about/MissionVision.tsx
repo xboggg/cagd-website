@@ -44,7 +44,7 @@ export default function MissionVision() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/hero/news-hero.webp"
+        backgroundImage="/images/hero/news-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

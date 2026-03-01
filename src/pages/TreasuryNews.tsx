@@ -48,7 +48,7 @@ export default function TreasuryNews() {
       <section
         className="relative py-16 md:py-24 text-white"
         style={{
-          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/news-hero.webp')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -110,7 +110,7 @@ export default function TreasuryNews() {
                             {t("common.readMore")} <ArrowRight className="w-3 h-3 ml-1" />
                           </Link>
                           {fileUrl && (
-                            <a href={fileUrl.startsWith("/new-site") ? fileUrl : `/new-site${fileUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-medium text-secondary hover:underline">
+                            <a href={fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-medium text-secondary hover:underline">
                               <Download className="w-3 h-3 mr-1" /> PDF
                             </a>
                           )}

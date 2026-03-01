@@ -129,7 +129,7 @@ export default function Payroll() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/divisions/payroll-hero.webp"
+        backgroundImage="/images/divisions/payroll-hero.webp"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -246,7 +246,7 @@ export default function Payroll() {
                   className="relative group cursor-pointer rounded-2xl overflow-hidden border border-border shadow-lg"
                 >
                   <img
-                    src="/new-site/images/divisions/Payroll_Final_OHCS-2048x1448.jpeg"
+                    src="/images/divisions/Payroll_Final_OHCS-2048x1448.jpeg"
                     alt="Government Payroll Management Division Organogram"
                     className="w-full h-auto"
                     loading="lazy"
@@ -260,7 +260,7 @@ export default function Payroll() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 overflow-auto">
                 <img
-                  src="/new-site/images/divisions/Payroll_Final_OHCS-2048x1448.jpeg"
+                  src="/images/divisions/Payroll_Final_OHCS-2048x1448.jpeg"
                   alt="Government Payroll Management Division Organogram — Full Size"
                   className="w-full h-auto"
                 />

@@ -334,7 +334,7 @@ export default function Contact() {
         >
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('/new-site/images/contact/contact-hero.webp')` }}
+            style={{ backgroundImage: `url('/images/contact/contact-hero.webp')` }}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/85 to-accent/80" />
         </motion.div>

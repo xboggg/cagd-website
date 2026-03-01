@@ -9,7 +9,7 @@ interface SEOHeadProps {
   jsonLd?: Record<string, unknown>;
 }
 
-const DEFAULT_OG_IMAGE = "https://cagd.gov.gh/new-site/images/og-image.jpg";
+const DEFAULT_OG_IMAGE = "https://cagd.gov.gh/images/og-image.jpg";
 
 export default function SEOHead({ title, description, path = "/", type = "WebPage", image, jsonLd }: SEOHeadProps) {
   const fullTitle = `${title} | CAGD Ghana`;

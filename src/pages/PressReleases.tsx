@@ -48,7 +48,7 @@ export default function PressReleases() {
       <section
         className="relative py-16 md:py-24 text-white"
         style={{
-          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/news-hero.webp')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

@@ -316,7 +316,7 @@ export default function Events() {
       <section
         className="relative py-14 md:py-20 text-white"
         style={{
-          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/news-hero.webp')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

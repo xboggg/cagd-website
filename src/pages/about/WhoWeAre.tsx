@@ -122,7 +122,7 @@ export default function WhoWeAre() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/hero/news-hero.webp"
+        backgroundImage="/images/hero/news-hero.webp"
         overlayOpacity={0.6}
         height="h-[500px] md:h-[600px]"
       >
@@ -255,7 +255,7 @@ export default function WhoWeAre() {
         >
           <div
             className="w-full h-full bg-cover bg-center"
-            style={{ backgroundImage: `url('/new-site/images/about/core-values-img.jpg')` }}
+            style={{ backgroundImage: `url('/images/about/core-values-img.jpg')` }}
           />
           <div className="absolute inset-0 bg-primary/80" />
         </motion.div>

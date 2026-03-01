@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://cagd.gov.gh/new-site/sitemap.xml
+Sitemap: https://cagd.gov.gh/sitemap.xml

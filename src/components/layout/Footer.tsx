@@ -104,7 +104,7 @@ export default function Footer() {
             <div className="lg:col-span-4">
               <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
                 <img
-                  src="/new-site/images/cagd-logo.png"
+                  src="/images/cagd-logo.png"
                   alt="CAGD Logo"
                   className="h-12 w-12 object-contain group-hover:scale-105 transition-transform"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

@@ -157,7 +157,7 @@ export default function CoreValues() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/new-site/images/about/core-values-img.jpg"
+        backgroundImage="/images/about/core-values-img.jpg"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

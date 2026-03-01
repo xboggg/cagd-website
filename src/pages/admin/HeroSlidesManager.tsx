@@ -111,7 +111,7 @@ export default function HeroSlidesManager() {
               <div>
                 <Label>Background Image *</Label>
                 <FileUpload bucket="cagd-news-images" accept="image/*" maxSize={10} onUpload={(url) => setForm({ ...form, image: url })} currentUrl={form.image} label="Upload Hero Image" />
-                <p className="text-xs text-muted-foreground mt-1">Or enter a path like /new-site/images/hero/hero-1.webp</p>
+                <p className="text-xs text-muted-foreground mt-1">Or enter a path like /images/hero/hero-1.webp</p>
                 <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="Image URL or path" className="mt-1" />
               </div>
               <div>

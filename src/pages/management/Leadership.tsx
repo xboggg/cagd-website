@@ -345,7 +345,7 @@ export default function Leadership() {
         ref={heroRef}
         className="relative py-20 md:py-28 text-white overflow-hidden"
         style={{
-          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/news-hero.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',

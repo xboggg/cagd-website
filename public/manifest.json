@@ -2,20 +2,20 @@
   "name": "Controller & Accountant-General's Department",
   "short_name": "CAGD Ghana",
   "description": "Ghana's premier public financial management institution since 1885",
-  "start_url": "/new-site/",
-  "scope": "/new-site/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#048945",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/new-site/favicon.png",
+      "src": "/favicon.png",
       "sizes": "64x64",
       "type": "image/png"
     },
     {
-      "src": "/new-site/cagd-logo.png",
+      "src": "/cagd-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
