@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { MapPin, Phone, Mail, User, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, resolveImagePath } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
+import { useTranslation } from "react-i18next";
 
 function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -36,28 +37,41 @@ const regionPaths: Record<string, { d: string; cx: number; cy: number }> = {
 };
 
 export default function RegionalDirectors() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
 
   const { data: offices = [], isLoading } = useQuery({
     queryKey: ["public-regional-offices"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("regional_offices").select("*").order("region");
+      const { data, error } = await supabase.from("cagd_regional_offices").select("*").order("region");
       if (error) throw error;
       return data;
     },
   });
 
-  const selectedOffice = offices.find((o) => o.region === selected);
+  const selectedOffice = offices.find((o) => {
+    if (!selected) return false;
+    const normalized = o.region.replace(/ Region$/i, "");
+    return normalized === selected || o.region === selected;
+  });
 
   return (
     <>
       <SEOHead title="Regional Directors" description="CAGD operates across all 16 regions of Ghana. View regional directors and office contacts." path="/management/regional-directors" />
 
-      <section className="bg-accent text-accent-foreground py-16 md:py-24">
-        <div className="container">
+      <section
+        className="relative py-16 md:py-24 text-white"
+        style={{
+          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="container relative z-10">
           <FadeIn>
-            <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white">Regional Directors</h1>
-            <p className="mt-4 text-lg text-white/80 max-w-2xl">CAGD operates across all 16 regions of Ghana. Click a region on the map to view the director's profile.</p>
+            <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white">{t("regionalDirectors.title")}</h1>
+            <p className="mt-4 text-lg text-white/80 max-w-2xl">{t("regionalDirectors.description")}</p>
           </FadeIn>
         </div>
       </section>
@@ -71,12 +85,12 @@ export default function RegionalDirectors() {
               <FadeIn>
                 <div className="card-elevated p-6">
                   <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-primary" /> Interactive Map of Ghana
+                    <MapPin className="h-5 w-5 text-primary" /> {t("regionalDirectors.interactiveMap")}
                   </h2>
                   <svg viewBox="0 0 270 340" className="w-full max-w-md mx-auto">
                     {Object.entries(regionPaths).map(([region, { d, cx, cy }]) => {
                       const isSelected = selected === region;
-                      const hasOffice = offices.some((o) => o.region === region);
+                      const hasOffice = offices.some((o) => o.region.replace(/ Region$/i, "") === region);
                       return (
                         <g key={region} onClick={() => setSelected(region)} className="cursor-pointer">
                           <motion.path
@@ -97,7 +111,7 @@ export default function RegionalDirectors() {
                       );
                     })}
                   </svg>
-                  <p className="text-xs text-muted-foreground text-center mt-3">Click a region to view details</p>
+                  <p className="text-xs text-muted-foreground text-center mt-3">{t("regionalDirectors.clickRegion")}</p>
                 </div>
               </FadeIn>
 
@@ -105,13 +119,21 @@ export default function RegionalDirectors() {
                 <AnimatePresence mode="wait">
                   {selectedOffice ? (
                     <motion.div key={selectedOffice.region} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="card-elevated overflow-hidden">
-                      <div className="bg-primary/10 p-6 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-heading font-bold text-primary uppercase tracking-wider">{selectedOffice.region} Region</p>
+                      <div className="bg-primary/10 p-5 flex items-start gap-4">
+                        {/* Director photo */}
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted shrink-0">
+                          {selectedOffice.director_photo ? (
+                            <img src={resolveImagePath(selectedOffice.director_photo)!} alt={selectedOffice.director_name || ""} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><User className="h-8 w-8 text-primary/30" /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-heading font-bold text-primary uppercase tracking-wider">{selectedOffice.region} {t("regionalDirectors.region")}</p>
                           <h3 className="font-heading font-bold text-xl mt-1">{selectedOffice.director_name || "TBD"}</h3>
                           <p className="text-sm text-muted-foreground">Regional Director</p>
                         </div>
-                        <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-muted transition-colors">
+                        <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -130,8 +152,8 @@ export default function RegionalDirectors() {
                   ) : (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-elevated p-12 text-center">
                       <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4"><MapPin className="h-8 w-8 text-muted-foreground" /></div>
-                      <h3 className="font-heading font-semibold text-lg mb-2">Select a Region</h3>
-                      <p className="text-sm text-muted-foreground">Click on any region on the map to view the Regional Director's profile and contact information.</p>
+                      <h3 className="font-heading font-semibold text-lg mb-2">{t("regionalDirectors.selectRegion")}</h3>
+                      <p className="text-sm text-muted-foreground">{t("regionalDirectors.selectRegionDesc")}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -144,18 +166,18 @@ export default function RegionalDirectors() {
       {/* Directors Grid */}
       <section className="py-16 md:py-20 bg-muted">
         <div className="container">
-          <FadeIn><h2 className="section-heading mb-10">All Regional Directors</h2></FadeIn>
+          <FadeIn><h2 className="section-heading mb-10">{t("regionalDirectors.allDirectors")}</h2></FadeIn>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {offices.map((office, i) => (
               <FadeIn key={office.id} delay={i * 0.04}>
                 <button
-                  onClick={() => { setSelected(office.region); window.scrollTo({ top: 300, behavior: "smooth" }); }}
-                  className={cn("card-elevated p-4 w-full text-left hover:border-primary/30 transition-colors", selected === office.region && "border-primary ring-1 ring-primary/20")}
+                  onClick={() => { setSelected(office.region.replace(/ Region$/i, "")); window.scrollTo({ top: 300, behavior: "smooth" }); }}
+                  className={cn("card-elevated p-4 w-full text-left hover:border-primary/30 transition-colors", selected === office.region.replace(/ Region$/i, "") && "border-primary ring-1 ring-primary/20")}
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {office.director_photo ? (
-                        <img src={office.director_photo} alt={office.director_name || ""} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={resolveImagePath(office.director_photo)!} alt={office.director_name || ""} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <User className="h-5 w-5 text-primary" />
                       )}

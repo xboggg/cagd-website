@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import FileUpload from "@/components/FileUpload";
+import { useTableSort, SortableHead } from "@/components/admin/SortableTableHead";
 
 export default function LeadershipManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -17,21 +19,29 @@ export default function LeadershipManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" });
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  const fetchItems = async () => { const { data } = await supabase.from("management_profiles").select("*").order("display_order"); setItems(data || []); setLoading(false); };
+  const filteredItems = items.filter((item) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return item.name?.toLowerCase().includes(q) || item.title?.toLowerCase().includes(q) || item.profile_type?.toLowerCase().includes(q);
+  });
+  const { sorted: sortedItems, sort, toggleSort } = useTableSort(filteredItems);
+
+  const fetchItems = async () => { const { data } = await supabase.from("cagd_management_profiles").select("*").order("display_order"); setItems(data || []); setLoading(false); };
   useEffect(() => { fetchItems(); }, []);
 
   const handleSave = async () => {
     let error;
-    if (editing) { ({ error } = await supabase.from("management_profiles").update(form).eq("id", editing.id)); }
-    else { ({ error } = await supabase.from("management_profiles").insert(form)); }
+    if (editing) { ({ error } = await supabase.from("cagd_management_profiles").update(form).eq("id", editing.id)); }
+    else { ({ error } = await supabase.from("cagd_management_profiles").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("management_profiles").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { await supabase.from("cagd_management_profiles").delete().eq("id", id); fetchItems(); };
 
   const openEdit = (item: any) => {
     setEditing(item);
@@ -43,6 +53,16 @@ export default function LeadershipManager() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-heading font-bold">Leadership Manager</h1>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search profiles..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-48 sm:w-64"
+            />
+          </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" }); } }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Profile</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -53,8 +73,7 @@ export default function LeadershipManager() {
                 <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
               </div>
               <div><Label>Bio</Label><Textarea rows={4} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></div>
-              <div className="grid grid-cols-3 gap-4">
-                <div><Label>Photo URL</Label><Input value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-4">
                 <div><Label>Display Order</Label><Input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value) || 0 })} /></div>
                 <div><Label>Type</Label>
                   <Select value={form.profile_type} onValueChange={(v) => setForm({ ...form, profile_type: v })}>
@@ -68,16 +87,28 @@ export default function LeadershipManager() {
                   </Select>
                 </div>
               </div>
+              <div>
+                <Label>Photo</Label>
+                <FileUpload
+                  bucket="cagd-leadership"
+                  accept="image/*"
+                  maxSize={5}
+                  onUpload={(url) => setForm({ ...form, photo: url })}
+                  currentUrl={form.photo}
+                  label="Upload Photo"
+                />
+              </div>
               <Button onClick={handleSave} className="w-full">Save</Button>
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
       {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
         <Table>
-          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Order</TableHead><TableHead className="w-24">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><SortableHead column="name" label="Name" sort={sort} onSort={toggleSort} /><SortableHead column="title" label="Title" sort={sort} onSort={toggleSort} /><SortableHead column="profile_type" label="Type" sort={sort} onSort={toggleSort} /><SortableHead column="display_order" label="Order" sort={sort} onSort={toggleSort} /><TableHead className="w-24">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>{item.title}</TableCell>

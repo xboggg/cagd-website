@@ -124,8 +124,16 @@ export default function DivisionPage({
   return (
     <>
       {/* Hero */}
-      <section className="bg-accent text-accent-foreground py-16 md:py-24">
-        <div className="container">
+      <section
+        className="relative py-16 md:py-24 text-white"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-primary/85" />
+        <div className="container relative z-10">
           <FadeIn>
             <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white max-w-3xl">{title}</h1>
             <p className="mt-4 text-lg text-white/80 max-w-2xl">{subtitle}</p>

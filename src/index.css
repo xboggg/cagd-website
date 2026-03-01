@@ -114,8 +114,14 @@
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -134,5 +140,166 @@
 
   .card-elevated {
     @apply rounded-lg bg-card shadow-md hover:shadow-lg transition-shadow border border-border;
+  }
+}
+
+/* Prose content mobile safety — constrain injected HTML elements */
+.prose img,
+.prose video,
+.prose iframe,
+.prose embed,
+.prose object,
+.prose figure {
+  max-width: 100% !important;
+  height: auto;
+}
+
+.prose table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prose pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(16, 185, 129, 0.55); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes slideGlow {
+  0% { transform: translate(-100%); }
+  100% { transform: translate(400%); }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  /* Hide non-content elements */
+  header,
+  footer,
+  nav,
+  .back-to-top,
+  [data-chatbot],
+  [role="complementary"],
+  button,
+  .no-print,
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Reset backgrounds and colors for ink saving */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Remove shadows and borders */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Make links visible */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  a[href^="#"]::after,
+  a[href^="javascript"]::after {
+    content: "";
+  }
+
+  /* Full-width content */
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hero sections - compact for print */
+  section[class*="hero"],
+  section[class*="bg-primary"],
+  section[class*="bg-accent"] {
+    background: white !important;
+    color: black !important;
+    padding: 1rem 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  section[class*="bg-primary"] *,
+  section[class*="bg-accent"] * {
+    color: black !important;
+  }
+
+  /* Hide overlays and background images */
+  [class*="absolute"][class*="inset-0"] {
+    display: none !important;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Prose content */
+  .prose {
+    max-width: 100% !important;
+    font-size: 11pt;
+  }
+
+  /* Page breaks */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  article, section {
+    page-break-inside: avoid;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+  }
+
+  /* Cards - flatten for print */
+  [class*="card-elevated"],
+  [class*="rounded-lg"][class*="shadow"] {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Show share/social buttons as text */
+  [class*="share"],
+  [class*="social"] {
+    display: none !important;
+  }
+
+  /* Badge styling */
+  [class*="badge"] {
+    border: 1px solid #999 !important;
+    background: white !important;
+    color: black !important;
   }
 }

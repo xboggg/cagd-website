@@ -1,119 +1,188 @@
 import { useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
-import { Heart, Globe, ShieldCheck, Users, Sparkles } from "lucide-react";
+import { motion, useInView, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { Heart, Globe, ShieldCheck, Users, Sparkles, ChevronDown, Quote } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import SEOHead from "@/components/SEOHead";
+import ParallaxHero from "@/components/ParallaxHero";
 
-function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
+  const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay }} className={className}>
+    <motion.div ref={ref} initial={{ opacity: 0, y: 40 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay, ease: "easeOut" }} className={className}>
       {children}
     </motion.div>
   );
 }
 
-const values = [
-  {
-    icon: Heart,
-    title: "Putting Customers First",
-    desc: "Addressing the needs of government and citizens with dedication and responsiveness.",
-    detail: "Every policy, system, and service we deliver is designed with the end user in mind — whether it's a government ministry awaiting fund releases or a pensioner accessing their payment.",
-    color: "text-red-500",
-    bg: "bg-red-500/10",
-  },
-  {
-    icon: Globe,
-    title: "Serving the Whole Country",
-    desc: "Ensuring accessible services nationwide across all 16 regions.",
-    detail: "With regional offices in every region of Ghana and coverage of 703 MDA spending units, we ensure no part of the country is left behind in public financial management services.",
-    color: "text-primary",
-    bg: "bg-primary/10",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Acting with Integrity",
-    desc: "Maintaining honesty, transparency, and openness in all operations.",
-    detail: "From our ghost worker detection initiatives to our commitment to IPSAS standards, integrity is the bedrock of our operations. We hold ourselves accountable to the highest ethical standards.",
-    color: "text-accent",
-    bg: "bg-accent/10",
-  },
-  {
-    icon: Users,
-    title: "Valuing People",
-    desc: "Fostering excellence in service culture and empowering our staff.",
-    detail: "We invest in training, welfare, and professional development through programs like Treasury Hour CPD series, TRELAS, and the CAGD Welfare Scheme to build a motivated workforce.",
-    color: "text-secondary",
-    bg: "bg-secondary/10",
-  },
-  {
-    icon: Sparkles,
-    title: "Continuous Improvement & Innovation",
-    desc: "Enhancing service delivery through technology and process innovation.",
-    detail: "From transitioning to fully electronic payments in 2018 to integrating with NIA for biometric payroll validation, we constantly push the boundaries of what's possible in government finance.",
-    color: "text-cta",
-    bg: "bg-cta/10",
-  },
-];
+interface ValueItem {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  shortDesc: string;
+  fullDesc: string;
+  gradient: string;
+  lightBg: string;
+  number: string;
+}
 
-function ValueCard({ value, index }: { value: typeof values[0]; index: number }) {
+function ValueCard({ value, index }: { value: ValueItem; index: number }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
 
   return (
-    <FadeIn delay={index * 0.1}>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+      animate={inView ? { opacity: 1, x: 0 } : {}}
+      transition={{ duration: 0.7, delay: index * 0.1, ease: "easeOut" }}
+    >
       <motion.div
-        layout
+        whileHover={{ y: -4 }}
         onClick={() => setExpanded(!expanded)}
-        className="card-elevated p-6 cursor-pointer group hover:border-primary/30 transition-colors"
+        className={`relative rounded-2xl border border-border overflow-hidden cursor-pointer transition-all duration-300 ${expanded ? "shadow-xl" : "shadow-sm hover:shadow-lg"}`}
       >
-        <div className="flex items-start gap-4">
-          <div className={`h-12 w-12 rounded-xl ${value.bg} flex items-center justify-center shrink-0`}>
-            <value.icon className={`h-6 w-6 ${value.color}`} />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-heading font-semibold text-lg mb-1">{value.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{value.desc}</p>
-            <motion.div
-              initial={false}
-              animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <p className="text-sm text-muted-foreground leading-relaxed mt-3 pt-3 border-t border-border">
-                {value.detail}
-              </p>
-            </motion.div>
-            <button className="text-xs font-medium text-primary mt-2 hover:underline">
-              {expanded ? "Show less" : "Read more"}
-            </button>
+        {/* Top gradient bar */}
+        <div className={`h-1 bg-gradient-to-r ${value.gradient}`} />
+
+        <div className="p-6 md:p-8">
+          <div className="flex items-start gap-5">
+            {/* Number + Icon */}
+            <div className="relative shrink-0">
+              <span className="absolute -top-2 -left-2 text-[3rem] font-heading font-extrabold text-muted/30 leading-none select-none">
+                {value.number}
+              </span>
+              <motion.div
+                whileHover={{ rotate: [0, -10, 10, 0] }}
+                transition={{ duration: 0.4 }}
+                className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${value.gradient} flex items-center justify-center shadow-lg mt-4`}
+              >
+                <value.icon className="h-7 w-7 text-white" />
+              </motion.div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading font-bold text-xl md:text-2xl text-foreground mb-2">{value.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">{value.shortDesc}</p>
+
+              <AnimatePresence>
+                {expanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={`mt-4 p-4 rounded-xl ${value.lightBg}`}>
+                      <p className="text-sm text-muted-foreground leading-[1.8]">{value.fullDesc}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                {expanded ? t("common.showLessBtn") : t("common.readMoreBtn")}
+                <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-4 h-4" />
+                </motion.div>
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
-    </FadeIn>
+    </motion.div>
   );
 }
 
 export default function CoreValues() {
+  const { t } = useTranslation();
+  const quoteRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: quoteRef, offset: ["start end", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
+
+  const values: ValueItem[] = [
+    {
+      icon: Heart,
+      title: t("values.customersFirst"),
+      shortDesc: t("values.customersFirstDesc"),
+      fullDesc: t("coreValues.fullDesc1"),
+      gradient: "from-rose-500 to-pink-600",
+      lightBg: "bg-rose-50 dark:bg-rose-950/20",
+      number: "01",
+    },
+    {
+      icon: Globe,
+      title: t("values.servingCountry"),
+      shortDesc: t("values.servingCountryDesc"),
+      fullDesc: t("coreValues.fullDesc2"),
+      gradient: "from-primary to-emerald-500",
+      lightBg: "bg-emerald-50 dark:bg-emerald-950/20",
+      number: "02",
+    },
+    {
+      icon: ShieldCheck,
+      title: t("values.integrity"),
+      shortDesc: t("values.integrityDesc"),
+      fullDesc: t("coreValues.fullDesc3"),
+      gradient: "from-blue-500 to-indigo-600",
+      lightBg: "bg-blue-50 dark:bg-blue-950/20",
+      number: "03",
+    },
+    {
+      icon: Users,
+      title: t("values.valuingPeople"),
+      shortDesc: t("values.valuingPeopleDesc"),
+      fullDesc: t("coreValues.fullDesc4"),
+      gradient: "from-secondary to-yellow-500",
+      lightBg: "bg-amber-50 dark:bg-amber-950/20",
+      number: "04",
+    },
+    {
+      icon: Sparkles,
+      title: t("values.innovation"),
+      shortDesc: t("values.innovationDesc"),
+      fullDesc: t("coreValues.fullDesc5"),
+      gradient: "from-violet-500 to-purple-600",
+      lightBg: "bg-violet-50 dark:bg-violet-950/20",
+      number: "05",
+    },
+  ];
+
   return (
     <>
       <SEOHead title="Core Values" description="Five guiding principles that shape how CAGD serves Ghana's public financial management needs." path="/about/core-values" />
-      <section className="bg-accent text-accent-foreground py-16 md:py-24">
-        <div className="container">
-          <FadeIn>
-            <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white">
-              Core Values
-            </h1>
-            <p className="mt-4 text-lg text-white/80 max-w-2xl">
-              Five guiding principles that shape how we serve Ghana's public financial management needs.
-            </p>
-          </FadeIn>
-        </div>
-      </section>
 
-      {/* Values Grid */}
-      <section className="py-16 md:py-20">
+      {/* ── Hero ── */}
+      <ParallaxHero
+        backgroundImage="/new-site/images/about/core-values-img.jpg"
+        overlayOpacity={0.6}
+        height="h-[450px] md:h-[550px]"
+      >
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: "5rem" }} transition={{ delay: 0.3, duration: 0.6 }} className="h-1 bg-secondary rounded-full mb-6" />
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-tight">
+            {t("coreValues.title")}
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed">
+            {t("coreValues.description")}
+          </p>
+        </motion.div>
+      </ParallaxHero>
+
+      {/* ── Values ── */}
+      <section className="py-20 md:py-28">
         <div className="container max-w-3xl">
-          <div className="space-y-4">
+          <Reveal>
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground">{t("coreValues.whatWeStandFor")}</h2>
+              <p className="text-muted-foreground mt-3 max-w-lg mx-auto">{t("coreValues.clickToLearn")}</p>
+            </div>
+          </Reveal>
+
+          <div className="space-y-6">
             {values.map((value, i) => (
               <ValueCard key={value.title} value={value} index={i} />
             ))}
@@ -121,15 +190,29 @@ export default function CoreValues() {
         </div>
       </section>
 
-      {/* Quote Section */}
-      <section className="py-16 md:py-20 bg-muted">
-        <div className="container text-center max-w-2xl">
-          <FadeIn>
-            <blockquote className="text-xl md:text-2xl font-heading font-medium text-foreground leading-relaxed italic">
-              "Excellence is not a skill. It is an attitude — and at CAGD, it is our culture."
+      {/* ── Quote Break ── */}
+      <section ref={quoteRef} className="relative py-24 md:py-32 overflow-hidden">
+        <motion.div style={{ y: bgY }} className="absolute inset-0 w-full h-[130%] -top-[15%]">
+          <div className="w-full h-full bg-gradient-to-br from-slate-900 via-primary/95 to-slate-900" />
+          <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-20 right-[20%] w-48 h-48 rounded-full bg-secondary/10 blur-2xl" />
+          <motion.div animate={{ y: [0, -15, 0] }} transition={{ duration: 10, repeat: Infinity, delay: 2 }} className="absolute bottom-20 left-[15%] w-40 h-40 rounded-full bg-white/[0.03] blur-xl" />
+        </motion.div>
+
+        <div className="container relative z-10 text-center max-w-3xl">
+          <Reveal>
+            <Quote className="w-12 h-12 text-secondary/40 mx-auto mb-6" />
+            <blockquote className="text-2xl md:text-3xl font-heading font-bold text-white leading-relaxed">
+              {t("coreValues.quote")}
             </blockquote>
-            <p className="mt-4 text-sm text-muted-foreground">— Controller & Accountant-General's Department</p>
-          </FadeIn>
+            <motion.div
+              initial={{ width: 0 }}
+              whileInView={{ width: "4rem" }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="h-0.5 bg-secondary rounded-full mx-auto mt-8 mb-4"
+            />
+            <p className="text-white/50 text-sm">{t("coreValues.attribution")}</p>
+          </Reveal>
         </div>
       </section>
     </>

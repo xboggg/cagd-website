@@ -7,14 +7,45 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
-      divisions: {
+      cagd_contact_messages: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          phone: string | null
+          subject: string | null
+          message: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          phone?: string | null
+          subject?: string | null
+          message: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          subject?: string | null
+          message?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      cagd_divisions: {
         Row: {
           created_at: string
           description: string | null
@@ -44,11 +75,12 @@ export type Database = {
         }
         Relationships: []
       }
-      events: {
+      cagd_events: {
         Row: {
           created_at: string
           description: string | null
           event_date: string | null
+          end_date: string | null
           featured: boolean
           id: string
           images: string[] | null
@@ -61,6 +93,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           event_date?: string | null
+          end_date?: string | null
           featured?: boolean
           id?: string
           images?: string[] | null
@@ -73,6 +106,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           event_date?: string | null
+          end_date?: string | null
           featured?: boolean
           id?: string
           images?: string[] | null
@@ -83,7 +117,7 @@ export type Database = {
         }
         Relationships: []
       }
-      gallery_albums: {
+      cagd_gallery_albums: {
         Row: {
           album_date: string | null
           cover_image: string | null
@@ -110,7 +144,7 @@ export type Database = {
         }
         Relationships: []
       }
-      gallery_photos: {
+      cagd_gallery_photos: {
         Row: {
           album_id: string
           caption: string | null
@@ -137,15 +171,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "gallery_photos_album_id_fkey"
+            foreignKeyName: "cagd_gallery_photos_album_id_fkey"
             columns: ["album_id"]
             isOneToOne: false
-            referencedRelation: "gallery_albums"
+            referencedRelation: "cagd_gallery_albums"
             referencedColumns: ["id"]
           },
         ]
       }
-      management_profiles: {
+      cagd_management_profiles: {
         Row: {
           bio: string | null
           created_at: string
@@ -181,49 +215,85 @@ export type Database = {
         }
         Relationships: []
       }
-      news: {
+      cagd_news: {
         Row: {
           author_id: string | null
           category: string
           content: string | null
+          content_tw: string | null
           created_at: string
+          excerpt: string | null
+          excerpt_tw: string | null
           featured_image: string | null
           id: string
           publish_date: string | null
+          slug: string | null
           status: string
           tags: string[] | null
           title: string
+          title_tw: string | null
           updated_at: string
         }
         Insert: {
           author_id?: string | null
           category?: string
           content?: string | null
+          content_tw?: string | null
           created_at?: string
+          excerpt?: string | null
+          excerpt_tw?: string | null
           featured_image?: string | null
           id?: string
           publish_date?: string | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title: string
+          title_tw?: string | null
           updated_at?: string
         }
         Update: {
           author_id?: string | null
           category?: string
           content?: string | null
+          content_tw?: string | null
           created_at?: string
+          excerpt?: string | null
+          excerpt_tw?: string | null
           featured_image?: string | null
           id?: string
           publish_date?: string | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title?: string
+          title_tw?: string | null
           updated_at?: string
         }
         Relationships: []
       }
-      profiles: {
+      cagd_newsletter_subscribers: {
+        Row: {
+          id: string
+          email: string
+          subscribed_at: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
+      cagd_profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
@@ -250,7 +320,7 @@ export type Database = {
         }
         Relationships: []
       }
-      projects: {
+      cagd_projects: {
         Row: {
           components: Json | null
           created_at: string
@@ -280,7 +350,7 @@ export type Database = {
         }
         Relationships: []
       }
-      regional_offices: {
+      cagd_regional_offices: {
         Row: {
           address: string | null
           created_at: string
@@ -316,11 +386,13 @@ export type Database = {
         }
         Relationships: []
       }
-      reports: {
+      cagd_reports: {
         Row: {
           category: string
           created_at: string
+          description: string | null
           download_count: number
+          file_size: number | null
           file_url: string | null
           id: string
           publish_date: string | null
@@ -330,7 +402,9 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          description?: string | null
           download_count?: number
+          file_size?: number | null
           file_url?: string | null
           id?: string
           publish_date?: string | null
@@ -340,7 +414,9 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          description?: string | null
           download_count?: number
+          file_size?: number | null
           file_url?: string | null
           id?: string
           publish_date?: string | null
@@ -349,7 +425,7 @@ export type Database = {
         }
         Relationships: []
       }
-      site_settings: {
+      cagd_site_settings: {
         Row: {
           created_at: string
           id: string
@@ -373,7 +449,7 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
+      cagd_user_roles: {
         Row: {
           created_at: string
           id: string
@@ -399,10 +475,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cagd_has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      cagd_increment_download: {
+        Args: {
+          report_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
       }
@@ -540,3 +629,19 @@ export const Constants = {
     },
   },
 } as const
+
+// Helper types for CAGD tables
+export type CagdNews = Tables<"cagd_news">
+export type CagdReport = Tables<"cagd_reports">
+export type CagdEvent = Tables<"cagd_events">
+export type CagdDivision = Tables<"cagd_divisions">
+export type CagdProject = Tables<"cagd_projects">
+export type CagdManagementProfile = Tables<"cagd_management_profiles">
+export type CagdRegionalOffice = Tables<"cagd_regional_offices">
+export type CagdGalleryAlbum = Tables<"cagd_gallery_albums">
+export type CagdGalleryPhoto = Tables<"cagd_gallery_photos">
+export type CagdProfile = Tables<"cagd_profiles">
+export type CagdUserRole = Tables<"cagd_user_roles">
+export type CagdSiteSetting = Tables<"cagd_site_settings">
+export type CagdContactMessage = Tables<"cagd_contact_messages">
+export type CagdNewsletterSubscriber = Tables<"cagd_newsletter_subscribers">
