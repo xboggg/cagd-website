@@ -268,7 +268,7 @@ function MobileNav({
 }
 
 export default function AdminLayout() {
-  const { user, loading, isAdmin, isEditor, signOut } = useAuth();
+  const { user, loading, role, isAdmin, isEditor, signOut } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [changePwOpen, setChangePwOpen] = useState(false);
