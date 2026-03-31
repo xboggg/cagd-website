@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Download } from "lucide-react";
+import { Bell, Download, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 
 interface SubRow {
   id: string;
@@ -17,6 +18,7 @@ interface SubRow {
 export default function SubscriptionsManager() {
   const [rows, setRows] = useState<SubRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     supabase
@@ -28,6 +30,17 @@ export default function SubscriptionsManager() {
         setLoading(false);
       });
   }, []);
+
+  const handleDelete = async (row: SubRow) => {
+    if (!window.confirm(`Delete subscriber ${row.email}? This cannot be undone.`)) return;
+    const { error } = await supabase.from("cagd_subscriptions").delete().eq("id", row.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      toast({ title: "Subscriber deleted", description: `${row.email} has been removed.` });
+    }
+  };
 
   const exportCsv = () => {
     const header = ["Name", "Email", "Status", "Subscribed At"];
@@ -78,6 +91,7 @@ export default function SubscriptionsManager() {
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Subscribed</TableHead>
+                <TableHead className="w-16">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,6 +104,11 @@ export default function SubscriptionsManager() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(row.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" onClick={() => handleDelete(row)} title="Delete subscriber">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
