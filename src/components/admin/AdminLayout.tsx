@@ -305,15 +305,15 @@ export default function AdminLayout() {
   });
 
   return (
-    <div className="min-h-screen flex bg-muted">
+    <div className="h-screen flex bg-muted overflow-hidden">
       {/* Change Password Dialog */}
       <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />
 
       {/* Mobile navigation */}
       <MobileNav filteredNav={filteredNav} location={location} user={user} signOut={signOut} onChangePassword={() => setChangePwOpen(true)} />
 
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      {/* Desktop Sidebar — fixed, does not scroll with content */}
+      <div className="hidden lg:flex h-screen sticky top-0">
         <Sidebar
           filteredNav={filteredNav}
           location={location}
@@ -325,10 +325,10 @@ export default function AdminLayout() {
         />
       </div>
 
-      {/* Main content */}
-      <div ref={contentRef} className="flex-1 flex flex-col min-h-screen overflow-auto">
+      {/* Main content — scrollable */}
+      <div ref={contentRef} className="flex-1 overflow-y-auto">
         {/* Add top padding on mobile for fixed header */}
-        <main className="flex-1 p-4 md:p-6 pt-20 lg:pt-6">
+        <main className="p-4 md:p-6 pt-20 lg:pt-6">
           <Outlet />
         </main>
       </div>
