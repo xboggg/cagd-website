@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Loader2, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { logAudit } from "@/lib/auditLog";
 
 const CORPORATE_DOMAIN = "@cagd.gov.gh";
 
@@ -73,6 +74,7 @@ export default function UserManagement() {
         return;
       }
     }
+    logAudit({ action: "create", resourceType: "user", resourceId: data.user?.id, resourceTitle: form.email });
     toast({ title: "User created", description: `${form.email} added as ${form.role}` });
     setDialogOpen(false);
     setForm({ email: "", password: "", role: "editor" });
@@ -80,8 +82,20 @@ export default function UserManagement() {
     fetchData();
   };
 
-  const handleDeleteRole = async (id: string) => {
+  const handleUpdateRole = async (id: string, newRole: string, email: string | null) => {
+    const { error } = await supabase.from("cagd_user_roles").update({ role: newRole as any }).eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    logAudit({ action: "update", resourceType: "user_role", resourceId: id, resourceTitle: email || undefined, details: { newRole } });
+    toast({ title: "Role updated", description: `Changed to ${newRole}` });
+    fetchData();
+  };
+
+  const handleDeleteRole = async (id: string, email: string | null) => {
     await supabase.from("cagd_user_roles").delete().eq("id", id);
+    logAudit({ action: "delete", resourceType: "user_role", resourceId: id, resourceTitle: email || undefined });
     toast({ title: "Role removed" });
     fetchData();
   };
@@ -168,7 +182,7 @@ export default function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User ID</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="w-20">Actions</TableHead>
@@ -177,18 +191,29 @@ export default function UserManagement() {
             <TableBody>
               {roles.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium font-mono text-xs">{r.user_id.slice(0, 8)}…</TableCell>
+                  <TableCell className="font-medium text-sm">{r.email || r.user_id.slice(0, 8) + "…"}</TableCell>
                   <TableCell>
-                    <Badge variant={r.role === "admin" ? "default" : "secondary"}>
-                      {r.role}
-                    </Badge>
+                    {r.user_id !== user?.id ? (
+                      <Select value={r.role} onValueChange={(v) => handleUpdateRole(r.id, v, r.email)}>
+                        <SelectTrigger className="w-32 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="default">{r.role}</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(r.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
                     {r.user_id !== user?.id && (
-                      <Button size="icon" variant="ghost" onClick={() => handleDeleteRole(r.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => handleDeleteRole(r.id, r.email)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     )}
