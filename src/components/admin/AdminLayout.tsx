@@ -280,7 +280,8 @@ export default function AdminLayout() {
     contentRef.current?.scrollTo(0, 0);
   }, [location.pathname]);
 
-  if (loading) {
+  // Show spinner while auth is loading OR user exists but role hasn't arrived yet
+  if (loading || (user && !role)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

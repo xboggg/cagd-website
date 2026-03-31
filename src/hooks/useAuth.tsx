@@ -33,31 +33,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    let initialLoad = true;
-
+    // onAuthStateChange handles subsequent auth events (login/logout/token refresh).
+    // Do NOT await Supabase calls inside this callback — it causes a deadlock.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchRole(session.user.id);
+          fetchRole(session.user.id);
         } else {
           setRole(null);
         }
-        setLoading(false);
       }
     );
 
+    // getSession handles the initial page load — safe to await here.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchRole(session.user.id);
       }
-      if (initialLoad) {
-        setLoading(false);
-        initialLoad = false;
-      }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
