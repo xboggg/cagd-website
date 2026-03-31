@@ -25,6 +25,9 @@ export function useSiteContent<T>(key: string, fallback: T): { data: T; isLoadin
       return fallback;
     },
     staleTime: 1000 * 60 * 10, // 10 min cache
+    gcTime: 1000 * 60 * 30, // keep in cache for 30 min
+    retry: 1, // only 1 retry to avoid long loading states
+    refetchOnWindowFocus: false, // don't refetch when tab regains focus
   });
 
   return { data: data ?? fallback, isLoading };

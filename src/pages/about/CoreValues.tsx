@@ -1,9 +1,14 @@
 import { useRef, useState } from "react";
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Heart, Globe, ShieldCheck, Users, Sparkles, ChevronDown, Quote } from "lucide-react";
+import { Heart, Globe, ShieldCheck, Users, Sparkles, ChevronDown, Quote, Shield, Award, Building2, Scale, Landmark, BookOpen, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import SEOHead from "@/components/SEOHead";
 import ParallaxHero from "@/components/ParallaxHero";
+import { useSiteContent } from "@/hooks/useSiteContent";
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Heart, Globe, ShieldCheck, Users, Sparkles, Shield, Award, Building2, Scale, Landmark, BookOpen, TrendingUp,
+};
 
 function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -103,53 +108,30 @@ export default function CoreValues() {
   const { scrollYProgress } = useScroll({ target: quoteRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
 
-  const values: ValueItem[] = [
-    {
-      icon: Heart,
-      title: t("values.customersFirst"),
-      shortDesc: t("values.customersFirstDesc"),
-      fullDesc: t("coreValues.fullDesc1"),
-      gradient: "from-rose-500 to-pink-600",
-      lightBg: "bg-rose-50 dark:bg-rose-950/20",
-      number: "01",
-    },
-    {
-      icon: Globe,
-      title: t("values.servingCountry"),
-      shortDesc: t("values.servingCountryDesc"),
-      fullDesc: t("coreValues.fullDesc2"),
-      gradient: "from-primary to-emerald-500",
-      lightBg: "bg-emerald-50 dark:bg-emerald-950/20",
-      number: "02",
-    },
-    {
-      icon: ShieldCheck,
-      title: t("values.integrity"),
-      shortDesc: t("values.integrityDesc"),
-      fullDesc: t("coreValues.fullDesc3"),
-      gradient: "from-blue-500 to-indigo-600",
-      lightBg: "bg-blue-50 dark:bg-blue-950/20",
-      number: "03",
-    },
-    {
-      icon: Users,
-      title: t("values.valuingPeople"),
-      shortDesc: t("values.valuingPeopleDesc"),
-      fullDesc: t("coreValues.fullDesc4"),
-      gradient: "from-secondary to-yellow-500",
-      lightBg: "bg-amber-50 dark:bg-amber-950/20",
-      number: "04",
-    },
-    {
-      icon: Sparkles,
-      title: t("values.innovation"),
-      shortDesc: t("values.innovationDesc"),
-      fullDesc: t("coreValues.fullDesc5"),
-      gradient: "from-violet-500 to-purple-600",
-      lightBg: "bg-violet-50 dark:bg-violet-950/20",
-      number: "05",
-    },
+  const GRADIENTS = ["from-rose-500 to-pink-600", "from-primary to-emerald-500", "from-blue-500 to-indigo-600", "from-secondary to-yellow-500", "from-violet-500 to-purple-600"];
+  const LIGHT_BGS = ["bg-rose-50 dark:bg-rose-950/20", "bg-emerald-50 dark:bg-emerald-950/20", "bg-blue-50 dark:bg-blue-950/20", "bg-amber-50 dark:bg-amber-950/20", "bg-violet-50 dark:bg-violet-950/20"];
+
+  const defaultValues: ValueItem[] = [
+    { icon: Heart, title: t("values.customersFirst"), shortDesc: t("values.customersFirstDesc"), fullDesc: t("coreValues.fullDesc1"), gradient: GRADIENTS[0], lightBg: LIGHT_BGS[0], number: "01" },
+    { icon: Globe, title: t("values.servingCountry"), shortDesc: t("values.servingCountryDesc"), fullDesc: t("coreValues.fullDesc2"), gradient: GRADIENTS[1], lightBg: LIGHT_BGS[1], number: "02" },
+    { icon: ShieldCheck, title: t("values.integrity"), shortDesc: t("values.integrityDesc"), fullDesc: t("coreValues.fullDesc3"), gradient: GRADIENTS[2], lightBg: LIGHT_BGS[2], number: "03" },
+    { icon: Users, title: t("values.valuingPeople"), shortDesc: t("values.valuingPeopleDesc"), fullDesc: t("coreValues.fullDesc4"), gradient: GRADIENTS[3], lightBg: LIGHT_BGS[3], number: "04" },
+    { icon: Sparkles, title: t("values.innovation"), shortDesc: t("values.innovationDesc"), fullDesc: t("coreValues.fullDesc5"), gradient: GRADIENTS[4], lightBg: LIGHT_BGS[4], number: "05" },
   ];
+
+  const { data: dbValues } = useSiteContent<{ title: string; description: string; icon: string }[]>("page_core_values", []);
+
+  const values: ValueItem[] = dbValues.length > 0
+    ? dbValues.map((v, i) => ({
+        icon: ICON_MAP[v.icon] || Heart,
+        title: v.title,
+        shortDesc: v.description,
+        fullDesc: v.description,
+        gradient: GRADIENTS[i % GRADIENTS.length],
+        lightBg: LIGHT_BGS[i % LIGHT_BGS.length],
+        number: String(i + 1).padStart(2, "0"),
+      }))
+    : defaultValues;
 
   return (
     <>

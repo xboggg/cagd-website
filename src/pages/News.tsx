@@ -11,6 +11,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { resolveImagePath, stripHtml, getNewsField } from "@/lib/utils";
+import SubscriptionForm from "@/components/SubscriptionForm";
 
 const categories = [
   "All", "General", "Announcements", "IPSAS", "Payroll", "GIFMIS", "Training", "Reforms", "Press Release", "Events", "Digest", "Treasury News"
@@ -198,6 +199,9 @@ export default function News() {
               {t("newsPage.noArticles")}
             </div>
           )}
+
+          {/* Subscription CTA */}
+          {!isLoading && <SubscriptionForm />}
 
           {/* Pagination */}
           {totalPages > 1 && (

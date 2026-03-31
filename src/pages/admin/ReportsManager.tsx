@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useTableSort, SortableHead } from "@/components/admin/SortableTableHead";
+import { logAudit } from "@/lib/auditLog";
 
 const CATEGORIES = ["General", "Annual Reports", "Financial Statements", "Payroll Reports", "Audit Reports", "IPSAS Reports", "Budget Reports", "Treasury Reports", "Circulars"];
 const ITEMS_PER_PAGE = 15;
@@ -92,6 +93,7 @@ export default function ReportsManager() {
       return;
     }
 
+    logAudit({ action: editing ? "update" : "create", resourceType: "report", resourceId: editing?.id, resourceTitle: form.title });
     toast({ title: editing ? "Report updated" : "Report created" });
     setDialogOpen(false);
     setEditing(null);
@@ -102,6 +104,7 @@ export default function ReportsManager() {
   const handleDelete = async () => {
     if (!deleteDialog.item) return;
     await supabase.from("cagd_reports").delete().eq("id", deleteDialog.item.id);
+    logAudit({ action: "delete", resourceType: "report", resourceId: deleteDialog.item.id, resourceTitle: deleteDialog.item.title });
     setDeleteDialog({ open: false, item: null });
     toast({ title: "Deleted", description: "Report has been deleted." });
     fetchItems();

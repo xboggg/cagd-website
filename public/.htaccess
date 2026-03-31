@@ -3,10 +3,18 @@ RewriteEngine On
 # Do not rewrite PHP files
 RewriteRule \.php$ - [L]
 
+# ── Dynamic OG tags for social media crawlers ──────────────────
+# Route event and news pages to og-meta.php ONLY for bot user agents
+RewriteCond %{HTTP_USER_AGENT} (WhatsApp|TelegramBot|facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|Pinterest|Googlebot|bingbot|Applebot|Embedly|Quora|Showyoubot|outbrain|vkShare|W3C_Validator) [NC]
+RewriteRule ^(events/[a-f0-9\-]+|news/[a-zA-Z0-9\-_]+)/?$ /og-meta.php [L,QSA]
+
 # If the request is not for an existing file, serve index.html (SPA routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]
+
+# Disable directory listings
+Options -Indexes
 
 # Cache control: no cache for HTML
 <Files "index.html">
@@ -18,4 +26,9 @@ RewriteRule ^ index.html [L]
 # Cache control: immutable for hashed assets
 <FilesMatch "\.(js|css)$">
   Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# Block access to sensitive files
+<FilesMatch "\.(env|sql|log|bak|old|sh|ini|conf)$">
+  Require all denied
 </FilesMatch>

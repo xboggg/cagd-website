@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Save, Plus, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Save, Plus, Pencil, Trash2, Heart, Globe, ShieldCheck, Users, Sparkles, Shield, Award, Building2, Scale, Landmark, BookOpen, TrendingUp, Star, Target, Lightbulb, HandshakeIcon, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { saveSiteContent } from "@/hooks/useSiteContent";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logAudit } from "@/lib/auditLog";
 
 // ── Types ──
 interface MissionVisionData { mission: string; vision: string; missionPillars: { title: string; description: string; icon: string }[]; achievements: string[]; }
@@ -24,6 +25,78 @@ const KEYS = {
   legalMandate: "page_legal_mandate",
   contactInfo: "site_contact_info",
 };
+
+const AVAILABLE_ICONS: { name: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { name: "Heart", icon: Heart },
+  { name: "Globe", icon: Globe },
+  { name: "ShieldCheck", icon: ShieldCheck },
+  { name: "Users", icon: Users },
+  { name: "Sparkles", icon: Sparkles },
+  { name: "Shield", icon: Shield },
+  { name: "Award", icon: Award },
+  { name: "Building2", icon: Building2 },
+  { name: "Scale", icon: Scale },
+  { name: "Landmark", icon: Landmark },
+  { name: "BookOpen", icon: BookOpen },
+  { name: "TrendingUp", icon: TrendingUp },
+  { name: "Star", icon: Star },
+  { name: "Target", icon: Target },
+  { name: "Lightbulb", icon: Lightbulb },
+  { name: "Eye", icon: Eye },
+];
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = Object.fromEntries(AVAILABLE_ICONS.map(i => [i.name, i.icon]));
+
+const DEFAULT_MISSION_PILLARS = [
+  { title: "Efficiency", description: "Streamlined processes ensuring timely service delivery", icon: "Lightbulb" },
+  { title: "Skilled Staff", description: "Continuous training and professional development", icon: "TrendingUp" },
+  { title: "Technology-Driven", description: "Leveraging modern systems like GIFMIS and EFT", icon: "Globe" },
+  { title: "Innovation", description: "Adapting global best practices for local impact", icon: "Sparkles" },
+];
+
+const DEFAULT_ACHIEVEMENTS = [
+  "First in West Africa to produce whole-of-government financial reports",
+  "Joined elite group: UK, Canada, Sweden, Australia, New Zealand",
+  "Aligned with IMF Government Finance Statistics standards",
+  "Real-time biometric payroll validation with NIA",
+  "Full Electronic Fund Transfer for all government payments",
+  "31 of 36 IPSAS standards adopted and implemented",
+];
+
+const DEFAULT_CORE_VALUES: CoreValue[] = [
+  { title: "Putting Customers First", description: "We exist to serve. Every decision is guided by how it impacts the citizens and institutions who depend on our services.", icon: "Heart" },
+  { title: "Serving the Whole Country", description: "Our mandate spans all 16 regions and 703+ MDAs. We bring consistent, equitable financial management to every corner of Ghana.", icon: "Globe" },
+  { title: "Acting with Integrity", description: "Transparency and honesty are non-negotiable. We uphold the highest ethical standards in managing public funds.", icon: "ShieldCheck" },
+  { title: "Valuing People", description: "Our staff are our greatest asset. We invest in their growth and empower them to deliver excellence.", icon: "Users" },
+  { title: "Continuous Improvement & Innovation", description: "From manual ledgers to GIFMIS and electronic payments — we continuously evolve to serve Ghana better.", icon: "Sparkles" },
+];
+
+const DEFAULT_TIMELINE: TimelineItem[] = [
+  { year: "1885", title: "The Treasury Established", description: "The British colonial administration established 'The Treasury' in the Gold Coast to manage colonial finances and public revenue." },
+  { year: "1937", title: "Accountant-General's Department", description: "The Treasury was re-christened to the Accountant-General's Department, reflecting its expanded accounting and financial management responsibilities." },
+  { year: "1957", title: "Ghana's Independence", description: "Under the newly independent Republic of Ghana, the department continued its critical mandate of safeguarding public finances." },
+  { year: "1960", title: "Civil Service Act", description: "Established under the Civil Service Act 1960 (CA. 5), CAGD was formally positioned as the Accounting Class of the Civil Service." },
+  { year: "1967", title: "CAGD is Born", description: "Renamed to the Controller & Accountant-General's Department, clearly defining its expanded role in exercising financial controls in budget execution." },
+  { year: "1992", title: "Constitutional Mandate", description: "The 1992 Constitution of Ghana formally enshrined CAGD's role and the CAG's responsibilities in public financial management." },
+  { year: "2016", title: "PFM Act 921", description: "The Public Financial Management Act, 2016 (Act 921) modernized and strengthened CAGD's legal framework for contemporary governance." },
+  { year: "2018", title: "Full EFT Transition", description: "Eliminated all manual cheque payments nationwide, transitioning fully to Electronic Fund Transfers for all government payments." },
+  { year: "2020", title: "Whole-of-Government Accounts", description: "Achieved Ghana's first comprehensive whole-of-government financial accounts — joining an elite group of nations including the UK, Canada, and Australia." },
+  { year: "2024", title: "NIA-CAGD Integration", description: "Real-time biometric payroll validation through integration with the National Identification Authority, eliminating ghost workers from the public payroll." },
+];
+
+const DEFAULT_MANDATE: MandateItem[] = [
+  { text: "Receive all public monies and make disbursements" },
+  { text: "Open and operate bank accounts for the Government of Ghana" },
+  { text: "Maintain proper records and books of accounts for Government transactions" },
+  { text: "Prepare and submit consolidated financial statements within 3 months of the end of each financial year" },
+  { text: "Exercise supervision over the receipt, custody, and disbursement of public monies" },
+  { text: "Inspect the accounts of all heads of departments and all persons entrusted with collection, receipt, custody, issue or payment of public monies" },
+  { text: "Examine and audit all Government payments" },
+  { text: "Bring to the notice of the Auditor-General any irregularity disclosed by the accounts" },
+  { text: "Take charge of all government stores and verify the accuracy of the government stores and stock records" },
+  { text: "Train and develop public sector accounting personnel" },
+  { text: "Process and manage the government payroll" },
+];
 
 export default function PagesContentManager() {
   const [mv, setMv] = useState<MissionVisionData>({ mission: "", vision: "", missionPillars: [], achievements: [] });
@@ -53,10 +126,45 @@ export default function PagesContentManager() {
         .in("key", Object.values(KEYS));
       const map: Record<string, string> = {};
       (rows || []).forEach(r => { if (r.value) map[r.key] = r.value; });
-      if (map[KEYS.missionVision]) try { setMv(JSON.parse(map[KEYS.missionVision])); } catch {}
-      if (map[KEYS.coreValues]) try { setCoreValues(JSON.parse(map[KEYS.coreValues])); } catch {}
-      if (map[KEYS.timeline]) try { setTimeline(JSON.parse(map[KEYS.timeline])); } catch {}
-      if (map[KEYS.legalMandate]) try { setMandate(JSON.parse(map[KEYS.legalMandate])); } catch {}
+      // Parse DB data, falling back to defaults when data is missing or arrays are empty
+      if (map[KEYS.missionVision]) {
+        try {
+          const parsed = JSON.parse(map[KEYS.missionVision]);
+          if (!parsed.missionPillars?.length) parsed.missionPillars = DEFAULT_MISSION_PILLARS;
+          if (!parsed.achievements?.length) parsed.achievements = DEFAULT_ACHIEVEMENTS;
+          setMv(parsed);
+        } catch {}
+      } else {
+        setMv({ mission: "", vision: "", missionPillars: DEFAULT_MISSION_PILLARS, achievements: DEFAULT_ACHIEVEMENTS });
+      }
+
+      if (map[KEYS.coreValues]) {
+        try {
+          const parsed = JSON.parse(map[KEYS.coreValues]);
+          setCoreValues(parsed.length > 0 ? parsed : DEFAULT_CORE_VALUES);
+        } catch {}
+      } else {
+        setCoreValues(DEFAULT_CORE_VALUES);
+      }
+
+      if (map[KEYS.timeline]) {
+        try {
+          const parsed = JSON.parse(map[KEYS.timeline]);
+          setTimeline(parsed.length > 0 ? parsed : DEFAULT_TIMELINE);
+        } catch {}
+      } else {
+        setTimeline(DEFAULT_TIMELINE);
+      }
+
+      if (map[KEYS.legalMandate]) {
+        try {
+          const parsed = JSON.parse(map[KEYS.legalMandate]);
+          setMandate(parsed.length > 0 ? parsed : DEFAULT_MANDATE);
+        } catch {}
+      } else {
+        setMandate(DEFAULT_MANDATE);
+      }
+
       if (map[KEYS.contactInfo]) try { setContact(JSON.parse(map[KEYS.contactInfo])); } catch {}
       setLoading(false);
     })();
@@ -67,7 +175,7 @@ export default function PagesContentManager() {
     const { error } = await saveSiteContent(key, data);
     setSaving(null);
     if (error) toast({ title: "Error", description: error, variant: "destructive" });
-    else toast({ title: `${label} saved` });
+    else { logAudit({ action: "update", resourceType: "pages_content", resourceTitle: label }); toast({ title: `${label} saved` }); }
   };
 
   // ── List helpers ──
@@ -211,13 +319,21 @@ export default function PagesContentManager() {
             <p className="text-sm text-muted-foreground text-center py-6">No core values configured. Defaults will be used.</p>
           ) : (
             <div className="space-y-2">
-              {coreValues.map((v, i) => (
-                <div key={i} className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2">
-                  <div className="flex-1"><p className="text-sm font-medium">{v.title}</p><p className="text-xs text-muted-foreground line-clamp-1">{v.description}</p></div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog("value", i)}><Pencil className="w-3 h-3" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteItem("value", i)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
-                </div>
-              ))}
+              {coreValues.map((v, i) => {
+                const IconComp = ICON_MAP[v.icon];
+                return (
+                  <div key={i} className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2">
+                    {IconComp && <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><IconComp className="w-4 h-4 text-primary" /></div>}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{v.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{v.description}</p>
+                      {v.icon && <p className="text-[10px] text-muted-foreground/60 mt-0.5">Icon: {v.icon}</p>}
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog("value", i)}><Pencil className="w-3 h-3" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteItem("value", i)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -304,7 +420,27 @@ export default function PagesContentManager() {
               <>
                 <div><Label>Title</Label><Input value={formValue.title} onChange={(e) => setFormValue({ ...formValue, title: e.target.value })} placeholder="Integrity" /></div>
                 <div><Label>Description</Label><Textarea rows={3} value={formValue.description} onChange={(e) => setFormValue({ ...formValue, description: e.target.value })} /></div>
-                <div><Label>Icon (lucide name)</Label><Input value={formValue.icon} onChange={(e) => setFormValue({ ...formValue, icon: e.target.value })} placeholder="Shield" /></div>
+                <div>
+                  <Label className="mb-2 block">Icon</Label>
+                  <div className="grid grid-cols-8 gap-1.5">
+                    {AVAILABLE_ICONS.map(({ name, icon: IC }) => (
+                      <button
+                        key={name}
+                        type="button"
+                        title={name}
+                        onClick={() => setFormValue({ ...formValue, icon: name })}
+                        className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border transition-all ${
+                          formValue.icon === name
+                            ? "border-primary bg-primary/10 ring-1 ring-primary"
+                            : "border-border hover:border-primary/40 hover:bg-muted/50"
+                        }`}
+                      >
+                        <IC className={`w-5 h-5 ${formValue.icon === name ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className="text-[9px] text-muted-foreground leading-tight truncate w-full text-center">{name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
             {dialogType === "timeline" && (

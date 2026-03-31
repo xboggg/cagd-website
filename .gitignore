@@ -28,3 +28,8 @@ dist-ssr
 winscp_script.txt
 migrate.php
 migrate2.php
+
+# Environment files
+.env
+.env.local
+.env.production

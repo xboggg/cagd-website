@@ -1,11 +1,11 @@
-const CACHE_NAME = 'cagd-v1';
+const CACHE_NAME = 'cagd-v2';
 const STATIC_ASSETS = [
   '/',
   '/cagd-logo.png',
   '/favicon.png',
 ];
 
-// Install — cache static assets
+// Install — cache static assets, skip waiting to activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate — clean old caches
+// Activate — purge all old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -23,16 +23,17 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — network-first strategy for pages, cache-first for assets
+// Fetch handler with strategy per resource type
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip non-GET requests and external URLs
-  if (request.method !== 'GET' || !url.origin.includes(self.location.origin)) return;
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Cache-first for static assets (images, CSS, JS)
-  if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|ico|css|js|woff2?)$/)) {
+  // --- Hashed assets (JS/CSS with content-hash in filename): cache-first ---
+  // These filenames change when content changes, so cache-first is safe
+  if (url.pathname.startsWith('/assets/') && url.pathname.match(/\.(js|css)$/)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
@@ -48,7 +49,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for HTML pages
+  // --- Images and fonts: network-first, cache fallback ---
+  // Always try network so fresh images load reliably; cache only for offline
+  if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|ico|gif|woff2?)$/)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // --- HTML pages: network-first, cache fallback ---
   event.respondWith(
     fetch(request)
       .then((response) => {

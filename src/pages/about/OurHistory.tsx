@@ -100,12 +100,10 @@ export default function OurHistory() {
       gradient: "from-violet-500 to-purple-600",
       events: [
         { year: "2016", event: t("ourHistory.era6Event1") },
-        { year: "2018", event: t("ourHistory.era6Event2") },
         { year: "2019", event: t("ourHistory.era6Event3") },
         { year: "2020", event: t("ourHistory.era6Event4") },
         { year: "2021", event: t("ourHistory.era6Event5") },
         { year: "2022", event: t("ourHistory.era6Event6") },
-        { year: "2024", event: t("ourHistory.era6Event7") },
       ],
     },
   ];

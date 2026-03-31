@@ -2,9 +2,10 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
   Calendar, MapPin, ArrowLeft, Share2, Facebook, Twitter, Linkedin, Copy,
-  Clock, Loader2, Tag, ExternalLink, User, Mail, Phone, FileText, Download,
+  Clock, Loader2, Tag, ExternalLink, User, Mail, Phone, FileText, Download, Users, Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,10 @@ import SEOHead from "@/components/SEOHead";
 import { useToast } from "@/hooks/use-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { resolveImagePath } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useTranslation } from "react-i18next";
+import EventRegistrationForm from "@/components/EventRegistrationForm";
+import FeedbackForm from "@/components/FeedbackForm";
 
 export default function EventDetail() {
   const { t } = useTranslation();
@@ -50,6 +54,39 @@ export default function EventDetail() {
     },
     enabled: !!id,
   });
+
+  // Registration count
+  const { data: regCount = 0 } = useQuery({
+    queryKey: ["event-reg-count", id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("cagd_event_registrations")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", id!);
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
+  // Countdown timer
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+  useEffect(() => {
+    if (!event?.event_date) return;
+    const target = new Date(event.event_date).getTime();
+    const tick = () => {
+      const diff = target - Date.now();
+      if (diff <= 0) return;
+      setCountdown({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        mins: Math.floor((diff % 3600000) / 60000),
+        secs: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [event?.event_date]);
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
@@ -169,7 +206,7 @@ export default function EventDetail() {
         <div className="container overflow-hidden">
           <div className="grid lg:grid-cols-3 gap-8 lg:gap-12 min-w-0">
             {/* Main Content */}
-            <div className="lg:col-span-2 min-w-0 overflow-hidden">
+            <div className="lg:col-span-2 min-w-0">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -195,7 +232,7 @@ export default function EventDetail() {
                   </h1>
                 )}
 
-                {/* Registration CTA */}
+                {/* Registration CTA — external URL takes priority; else inline form below */}
                 {registrationUrl && !isPast && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
@@ -281,10 +318,38 @@ export default function EventDetail() {
                 )}
 
                 {/* Description */}
-                <div className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-foreground overflow-hidden break-words prose-headings:font-heading prose-headings:text-foreground prose-a:text-primary prose-a:break-all prose-img:max-w-full prose-img:h-auto prose-table:block prose-table:overflow-x-auto prose-table:max-w-full prose-pre:overflow-x-auto prose-pre:max-w-full prose-figure:max-w-full" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>
+                <div className="prose prose-sm sm:prose-base md:prose-lg dark:prose-invert max-w-none text-foreground overflow-hidden break-words prose-headings:font-heading prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-a:break-all prose-img:max-w-full prose-img:h-auto prose-table:block prose-table:overflow-x-auto prose-table:max-w-full prose-pre:overflow-x-auto prose-pre:max-w-full prose-figure:max-w-full" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>
                   <h2 className="text-xl font-heading font-semibold mb-4">{t("eventsPage.aboutEvent")}</h2>
-                  <div dangerouslySetInnerHTML={{ __html: event.description?.replace(/\n/g, "<br />") || "" }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(event.description?.replace(/\n/g, "<br />") || "") }} />
                 </div>
+
+                {/* Countdown Timer — upcoming events only (shown here for all screen sizes) */}
+                {!isPast && event.event_date && (
+                  <div className="card-elevated p-4 mb-8">
+                    <h3 className="font-heading font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                      <Timer className="w-4 h-4" /> Event Countdown
+                    </h3>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      {[{ label: "Days", val: countdown.days }, { label: "Hrs", val: countdown.hours }, { label: "Min", val: countdown.mins }, { label: "Sec", val: countdown.secs }].map(({ label, val }) => (
+                        <div key={label} className="bg-primary/10 rounded-lg py-3">
+                          <p className="text-2xl font-heading font-bold text-primary">{String(val).padStart(2, "0")}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Registration Count — upcoming events only */}
+                {!isPast && (
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 border border-border mb-8">
+                    <Users className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{regCount} {regCount === 1 ? "person" : "people"} registered</p>
+                      <p className="text-xs text-muted-foreground">Be part of this event</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Documents / Agenda */}
                 {documents && documents.length > 0 && (
@@ -295,20 +360,26 @@ export default function EventDetail() {
                     <div className="space-y-2">
                       {documents.map((docUrl, idx) => {
                         const fileName = docUrl.split("/").pop() || `Document ${idx + 1}`;
+                        const handleDownload = () => {
+                          supabase.from("cagd_document_downloads").insert({
+                            document_url: docUrl,
+                            file_name: fileName,
+                            event_id: event.id,
+                          }).then(() => {});
+                          window.open(docUrl, "_blank", "noreferrer");
+                        };
                         return (
-                          <a
+                          <button
                             key={idx}
-                            href={docUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/[0.02] transition-colors"
+                            onClick={handleDownload}
+                            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/[0.02] transition-colors text-left"
                           >
                             <div className="p-2 rounded-lg bg-primary/10">
                               <FileText className="w-4 h-4 text-primary" />
                             </div>
                             <span className="flex-1 text-sm font-medium text-foreground truncate">{fileName}</span>
                             <Download className="w-4 h-4 text-muted-foreground" />
-                          </a>
+                          </button>
                         );
                       })}
                     </div>
@@ -364,12 +435,24 @@ export default function EventDetail() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Inline Registration Form — shown when no external URL is set and event is upcoming */}
+                {!registrationUrl && !isPast && (
+                  <EventRegistrationForm eventId={event.id} eventTitle={event.title} eventDate={event.event_date} eventVenue={event.venue} category={category} />
+                )}
+
+                {/* Feedback Form — shown for past events */}
+                {isPast && (
+                  <FeedbackForm eventId={event.id} eventTitle={event.title} />
+                )}
               </motion.div>
             </div>
 
             {/* Sidebar */}
             <aside className="lg:col-span-1 min-w-0 overflow-hidden">
-              <div className="sticky top-6 overflow-hidden">
+              <div className="sticky top-6 overflow-hidden space-y-6">
+
+                <div>
                 <h3 className="font-heading font-bold text-lg text-foreground mb-4">{t("eventsPage.upcomingEvents")}</h3>
                 {upcomingEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t("eventsPage.noUpcomingEvents")}</p>
@@ -419,6 +502,7 @@ export default function EventDetail() {
                   <Link to="/events">
                     <Button variant="outline" className="w-full">{t("eventsPage.viewAllEvents")}</Button>
                   </Link>
+                </div>
                 </div>
               </div>
             </aside>

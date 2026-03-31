@@ -143,6 +143,11 @@
   }
 }
 
+/* Dark mode: override inline color styles from rich text editor */
+.dark .prose :where(p, span, strong, b, em, i, h1, h2, h3, h4, h5, h6, li, td, th, u, s) {
+  color: hsl(var(--foreground)) !important;
+}
+
 /* Prose content mobile safety — constrain injected HTML elements */
 .prose img,
 .prose video,

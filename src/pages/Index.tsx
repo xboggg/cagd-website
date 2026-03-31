@@ -6,7 +6,7 @@ import {
   ArrowRight, FileText, Users, MapPin, BarChart3, Shield, Landmark, Globe,
   CreditCard, BookOpen, Calendar, ExternalLink, Building2, CheckCircle2,
   Clock, LayoutGrid, Sparkles, Briefcase, Monitor, Receipt, Eye,
-  TrendingUp, Quote, User, Download, Newspaper,
+  TrendingUp, Quote, User, Download, Newspaper, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,14 +115,10 @@ export default function HomePage() {
   const { t } = useTranslation();
   const [activeSlide, setActiveSlide] = useState(0);
   const [slideKey, setSlideKey] = useState(0);
+  const [eventCountdown, setEventCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+  const [activeEventIdx, setActiveEventIdx] = useState(0);
 
   const heroSlides = [
-    {
-      image: "/images/hero/hero-3.webp",
-      title: t("home.heroTitle1"),
-      subtitle: t("home.heroSubtitle1"),
-      cta: { label: t("home.heroCTA1"), link: "/about/who-we-are" },
-    },
     {
       image: "/images/hero/hero-1.webp",
       title: t("home.heroTitle2"),
@@ -152,6 +148,12 @@ export default function HomePage() {
       title: t("home.heroTitle7"),
       subtitle: t("home.heroSubtitle7"),
       cta: { label: t("home.heroCTA7"), link: "#e-services" },
+    },
+    {
+      image: "/images/hero/hero-3.webp",
+      title: t("home.heroTitle1"),
+      subtitle: t("home.heroSubtitle1"),
+      cta: { label: t("home.heroCTA1"), link: "/about/who-we-are" },
     },
   ];
 
@@ -193,9 +195,12 @@ export default function HomePage() {
 
   /* DB-driven hero slides (fall back to hardcoded) */
   const { data: dbHeroSlides } = useSiteContent<{ image: string; title: string; subtitle: string; ctaLabel: string; ctaLink: string }[]>("homepage_hero_slides", []);
-  const slides = dbHeroSlides.length > 0
-    ? dbHeroSlides.map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle, cta: { label: s.ctaLabel, link: s.ctaLink } }))
-    : heroSlides;
+  // Accept local paths (/images/...) and Supabase storage URLs (https://db.techtrendi.com/storage/...)
+  const isValidHeroImage = (url: string) => url.startsWith("/") || url.startsWith("https://db.techtrendi.com/storage/");
+  const validDbSlides = dbHeroSlides
+    .filter(s => s.image && s.title && isValidHeroImage(s.image))
+    .map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle, cta: { label: s.ctaLabel, link: s.ctaLink } }));
+  const slides = validDbSlides.length > 0 ? validDbSlides : heroSlides;
 
   /* Hero auto-advance */
   useEffect(() => {
@@ -241,7 +246,7 @@ export default function HomePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cagd_events")
-        .select("id, title, event_date, venue, featured_image")
+        .select("id, title, event_date, end_date, venue, featured_image")
         .eq("status", "published")
         .gte("event_date", new Date().toISOString())
         .order("event_date", { ascending: true })
@@ -250,6 +255,34 @@ export default function HomePage() {
       return data;
     },
   });
+
+  // Live countdown to the currently active carousel event
+  useEffect(() => {
+    const nextEvent = upcomingEvents[activeEventIdx] ?? upcomingEvents[0];
+    if (!nextEvent?.event_date) return;
+    const target = new Date(nextEvent.event_date).getTime();
+    const tick = () => {
+      const diff = Math.max(0, target - Date.now());
+      setEventCountdown({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        mins: Math.floor((diff % 3600000) / 60000),
+        secs: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [upcomingEvents, activeEventIdx]);
+
+  // Auto-advance carousel when there are multiple events
+  useEffect(() => {
+    if (upcomingEvents.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveEventIdx((i) => (i + 1) % upcomingEvents.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [upcomingEvents.length]);
 
   const { data: digestIssues = [] } = useQuery({
     queryKey: ["home-digest"],
@@ -272,7 +305,7 @@ export default function HomePage() {
     title: "Controller & Accountant-General",
   });
 
-  const slide = slides[activeSlide] || slides[0];
+  const slide = slides[activeSlide] || slides[0] || heroSlides[0];
 
   return (
     <>
@@ -292,9 +325,12 @@ export default function HomePage() {
       />
 
       {/* ═══ 1 · HERO SLIDER ═══════════════════════════════════════ */}
-      <section className="relative min-h-[100svh] overflow-hidden bg-accent">
+      <section
+        className="relative min-h-[100svh] overflow-hidden bg-accent"
+        style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center" }}
+      >
         {/* Background images with Ken Burns */}
-        <AnimatePresence mode="sync">
+        <AnimatePresence initial={false} mode="sync">
           <motion.div
             key={activeSlide}
             className="absolute inset-0"
@@ -310,8 +346,15 @@ export default function HomePage() {
               initial={{ scale: 1.0 }}
               animate={{ scale: 1.15 }}
               transition={{ duration: (SLIDE_INTERVAL / 1000) + 1.5, ease: "linear" }}
+              onError={(e) => {
+                // Fall back to local hero image if image fails to load
+                const localFallback = `/images/hero/hero-${(activeSlide % 6) + 1}.webp`;
+                if (!e.currentTarget.src.includes("/images/hero/")) {
+                  e.currentTarget.src = localFallback;
+                }
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-accent/80" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/85 to-accent/75" />
           </motion.div>
         </AnimatePresence>
 
@@ -329,7 +372,7 @@ export default function HomePage() {
               >
                 {/* Staggered word reveal */}
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-[1.1]">
-                  {slide.title.split(" ").map((word, i) => (
+                  {(slide.title || "").split(" ").map((word, i) => (
                     <motion.span
                       key={i}
                       initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
@@ -774,51 +817,173 @@ export default function HomePage() {
                 </div>
               </FadeInSection>
 
-              {upcomingEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {upcomingEvents.map((event, i) => (
-                    <FadeInSection key={event.id} delay={i * 0.1}>
-                      <Link to={`/events/${event.id}`} className="block group">
-                        <motion.div
-                          whileHover={{ x: 4 }}
-                          className="bg-card border border-border rounded-2xl p-5 hover:shadow-xl hover:border-primary/20 transition-all duration-300"
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex flex-col items-center justify-center text-white shadow-lg shadow-primary/20">
-                              <span className="text-lg font-heading font-bold leading-none">
-                                {event.event_date ? new Date(event.event_date).getDate() : "?"}
-                              </span>
-                              <span className="text-[10px] font-bold uppercase mt-0.5">
-                                {event.event_date ? new Date(event.event_date).toLocaleDateString("en-GB", { month: "short", timeZone: "GMT" }) : "TBD"}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-heading font-semibold text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-2">{event.title}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {event.venue && <><MapPin className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />{event.venue}</>}
-                              </p>
-                              {event.event_date && (
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {new Date(event.event_date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "GMT" })}
-                                </p>
-                              )}
-                            </div>
-                            {(event as any).featured_image && (
-                              <div className="shrink-0 w-24 h-20 rounded-xl overflow-hidden">
-                                <img
-                                  src={(event as any).featured_image}
-                                  alt=""
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
+              {upcomingEvents.length > 0 ? (() => {
+                const activeEvent = upcomingEvents[activeEventIdx];
+                return (
+                  <FadeInSection>
+                    <motion.div
+                      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent text-white shadow-lg shadow-primary/25 flex flex-col"
+                      style={{ height: "420px" }}
+                    >
+                      {/* Ambient pulse */}
+                      <motion.div
+                        className="absolute inset-0 bg-white/5 pointer-events-none"
+                        animate={{ scale: [1, 1.06, 1], opacity: [0.3, 0.08, 0.3] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      />
+
+                      {/* Featured image with crossfade */}
+                      <div className="relative flex-1 min-h-[160px] overflow-hidden bg-primary/50">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={`img-${activeEventIdx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="absolute inset-0"
+                          >
+                            {(activeEvent as any).featured_image ? (
+                              <motion.img
+                                src={(activeEvent as any).featured_image}
+                                alt={activeEvent.title}
+                                className="w-full h-full object-cover origin-center"
+                                animate={{ scale: [1.0, 1.12, 1.0] }}
+                                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                <Calendar className="w-20 h-20 text-white/15" />
                               </div>
                             )}
+                          </motion.div>
+                        </AnimatePresence>
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent pointer-events-none" />
+                        {/* Label badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                            Next Event Countdown
+                          </span>
+                        </div>
+                        {/* Counter badge */}
+                        {upcomingEvents.length > 1 && (
+                          <div className="absolute top-3 right-3">
+                            <span className="text-[10px] font-semibold text-white bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                              {activeEventIdx + 1} / {upcomingEvents.length}
+                            </span>
                           </div>
-                        </motion.div>
-                      </Link>
-                    </FadeInSection>
-                  ))}
-                </div>
-              ) : (
+                        )}
+                      </div>
+
+                      {/* Card body */}
+                      <div className="relative z-10 flex flex-col shrink-0 p-5">
+                        {/* Event info — animates on slide change */}
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={`info-${activeEventIdx}`}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.3 }}
+                            className="mb-4"
+                          >
+                            <Link to={`/events/${activeEvent.id}`} className="group">
+                              <h3 className="font-heading font-bold text-base leading-snug mb-1.5 group-hover:underline line-clamp-2">
+                                {activeEvent.title}
+                              </h3>
+                            </Link>
+                            {activeEvent.event_date && (
+                              <p className="text-xs text-white/70 flex items-center gap-1.5 mb-1">
+                                <Calendar className="w-3 h-3 shrink-0" />
+                                {new Date(activeEvent.event_date).toLocaleDateString("en-GB", {
+                                  weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "GMT",
+                                })}
+                                {(activeEvent as any).end_date && ` — ${new Date((activeEvent as any).end_date).toLocaleDateString("en-GB", {
+                                  weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "GMT",
+                                })}`}
+                              </p>
+                            )}
+                            {activeEvent.venue && (
+                              <p className="text-xs text-white/60 flex items-center gap-1.5">
+                                <MapPin className="w-3 h-3 shrink-0" /> {activeEvent.venue}
+                              </p>
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+
+                        {/* Countdown boxes */}
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          {[
+                            { label: "Days", val: eventCountdown.days },
+                            { label: "Hours", val: eventCountdown.hours },
+                            { label: "Mins", val: eventCountdown.mins },
+                            { label: "Secs", val: eventCountdown.secs },
+                          ].map(({ label, val }) => (
+                            <motion.div
+                              key={label}
+                              className="bg-white/15 backdrop-blur-sm rounded-xl py-3"
+                              whileHover={{ backgroundColor: "rgba(255,255,255,0.25)" }}
+                            >
+                              <motion.p
+                                key={val}
+                                initial={{ opacity: 0.6, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-2xl font-heading font-extrabold leading-none"
+                              >
+                                {String(val).padStart(2, "0")}
+                              </motion.p>
+                              <p className="text-[10px] text-white/70 mt-1 font-medium">{label}</p>
+                            </motion.div>
+                          ))}
+                        </div>
+
+                        {/* Carousel nav + View link */}
+                        <div className="flex items-center justify-between mt-4">
+                          {upcomingEvents.length > 1 ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setActiveEventIdx((i) => (i - 1 + upcomingEvents.length) % upcomingEvents.length)}
+                                className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center transition-colors"
+                                aria-label="Previous event"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <div className="flex gap-1.5">
+                                {upcomingEvents.map((_, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setActiveEventIdx(idx)}
+                                    aria-label={`Go to event ${idx + 1}`}
+                                    className={`rounded-full transition-all duration-300 ${
+                                      idx === activeEventIdx ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/40 hover:bg-white/70"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <button
+                                onClick={() => setActiveEventIdx((i) => (i + 1) % upcomingEvents.length)}
+                                className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center transition-colors"
+                                aria-label="Next event"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div />
+                          )}
+                          <Link
+                            to={`/events/${activeEvent.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-white/80 hover:text-white hover:underline transition-colors"
+                          >
+                            View Event <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </FadeInSection>
+                );
+              })() : (
                 <FadeInSection>
                   <div className="bg-card border border-border rounded-2xl p-12 text-center h-full flex flex-col items-center justify-center">
                     <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
@@ -850,15 +1015,14 @@ export default function HomePage() {
               </FadeInSection>
 
               {digestIssues.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Featured latest issue */}
                   <FadeInSection delay={0.2}>
                     <motion.div
                       whileHover={{ y: -4 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className="group relative bg-card border border-border rounded-2xl overflow-hidden shadow-md hover:shadow-2xl hover:border-secondary/30 transition-all duration-300"
+                      className="group relative bg-card border border-border rounded-2xl overflow-hidden shadow-md hover:shadow-2xl hover:border-secondary/30 transition-all duration-300 flex flex-col"
+                      style={{ height: "420px" }}
                     >
-                      <div className="relative h-48 sm:h-56 bg-muted overflow-hidden">
+                      <div className="relative flex-1 min-h-[192px] bg-muted overflow-hidden">
                         {resolveImagePath(digestIssues[0].featured_image) ? (
                           <img
                             src={resolveImagePath(digestIssues[0].featured_image)!}
@@ -907,10 +1071,9 @@ export default function HomePage() {
                     </motion.div>
                   </FadeInSection>
 
-                </div>
               ) : (
                 <FadeInSection delay={0.2}>
-                  <div className="bg-card border border-border rounded-2xl p-12 text-center h-full flex flex-col items-center justify-center">
+                  <div className="bg-card border border-border rounded-2xl p-12 text-center flex flex-col items-center justify-center" style={{ height: "500px" }}>
                     <Newspaper className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                     <p className="text-muted-foreground font-medium">{t("digestPage.noArticles")}</p>
                     <p className="text-sm text-muted-foreground mt-1">{t("home.stayTuned")}</p>
