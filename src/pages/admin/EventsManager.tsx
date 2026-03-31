@@ -72,6 +72,21 @@ function RegistrationsDialog({ event, onClose }: { event: any; onClose: () => vo
     }
   };
 
+  const deleteRegistration = async (reg: Registration) => {
+    if (!window.confirm(`Delete registration for ${reg.name} (${reg.email})? This cannot be undone.`)) return;
+    const { error } = await supabase
+      .from("cagd_event_registrations")
+      .delete()
+      .eq("id", reg.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setRegs((prev) => prev.filter((r) => r.id !== reg.id));
+      logAudit({ action: "delete", resourceType: "event_registration", resourceId: reg.id, resourceTitle: `${reg.name} — ${event.title}` });
+      toast({ title: "Registration deleted", description: `${reg.name} has been removed.` });
+    }
+  };
+
   const exportCsv = () => {
     if (regs.length === 0) return;
     const headers = ["Name", "Email", "Phone", "Gender", "Participant Type", "Region", "Department", "MDA/MMDA", "Status", "Registered At"];
@@ -199,6 +214,9 @@ function RegistrationsDialog({ event, onClose }: { event: any; onClose: () => vo
                                 <XCircle className="w-4 h-4 text-red-500" />
                               </Button>
                             )}
+                            <Button size="icon" variant="ghost" className="h-7 w-7" title="Delete registration" onClick={() => deleteRegistration(reg)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
