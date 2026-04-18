@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
-import Image from "@tiptap/extension-image";
+import { ResizableImage } from "@/components/ResizableImage";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
@@ -86,10 +86,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         openOnClick: false,
         HTMLAttributes: { class: "text-primary underline cursor-pointer" },
       }),
-      Image.configure({
-        HTMLAttributes: { class: "rounded-lg max-w-full h-auto my-4" },
-        allowBase64: false,
-      }),
+      ResizableImage,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
@@ -142,7 +139,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     setLinkOpen(false);
   }, [editor, linkUrl]);
 
-  // Upload image to Supabase and insert into editor
+  // Upload image to cPanel server and insert into editor
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
@@ -159,25 +156,38 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
     setUploading(true);
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    // Get auth token
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
 
-    const { error } = await supabase.storage
-      .from("cagd-news-images")
-      .upload(fileName, file);
-
-    if (error) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    if (!token) {
+      toast({ title: "Not authenticated", description: "Please log in again.", variant: "destructive" });
       setUploading(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage
-      .from("cagd-news-images")
-      .getPublicUrl(fileName);
+    const formData = new FormData();
+    formData.append("file", file);
 
-    editor.chain().focus().setImage({ src: urlData.publicUrl, alt: file.name }).run();
-    toast({ title: "Image inserted" });
+    try {
+      const res = await fetch("/api/upload.php?folder=news", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+      toast({ title: "Image inserted" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message || "Could not upload image", variant: "destructive" });
+    }
+
     setUploading(false);
 
     // Reset input so same file can be re-selected

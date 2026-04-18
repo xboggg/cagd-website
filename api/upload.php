@@ -103,20 +103,21 @@ if ($file['size'] > 5 * 1024 * 1024) {
 
 // Extension whitelist
 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-$allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+$isPdf = ($ext === 'pdf');
+$allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf'];
 if (!in_array($ext, $allowedExts)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid file extension. Only jpg, jpeg, png, webp, gif allowed.']);
+    echo json_encode(['error' => 'Invalid file extension. Only jpg, jpeg, png, webp, gif, pdf allowed.']);
     exit;
 }
 
 // Server-side MIME detection (not client-provided)
 $finfo = new finfo(FILEINFO_MIME_TYPE);
 $detectedMime = $finfo->file($file['tmp_name']);
-$allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+$allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 if (!in_array($detectedMime, $allowedMimes)) {
     http_response_code(400);
-    echo json_encode(['error' => 'File content does not match an allowed image type.']);
+    echo json_encode(['error' => 'File content does not match an allowed type.']);
     exit;
 }
 
@@ -127,23 +128,26 @@ if (substr($header, 0, 3) === "\xFF\xD8\xFF") $validMagic = true;               
 elseif (substr($header, 0, 4) === "\x89PNG") $validMagic = true;                 // PNG
 elseif (substr($header, 0, 4) === "RIFF" && substr($header, 8, 4) === "WEBP") $validMagic = true; // WebP
 elseif (substr($header, 0, 6) === "GIF87a" || substr($header, 0, 6) === "GIF89a") $validMagic = true; // GIF
+elseif (substr($header, 0, 4) === "%PDF") $validMagic = true;                    // PDF
 
 if (!$validMagic) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid image file (magic bytes mismatch).']);
+    echo json_encode(['error' => 'Invalid file (magic bytes mismatch).']);
     exit;
 }
 
-// Reject files containing PHP tags
-$contents = file_get_contents($file['tmp_name']);
-if (preg_match('/<\?php|<\?=/i', $contents)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'File contains disallowed content.']);
-    exit;
+// Reject files containing PHP tags (images only — skip for PDF)
+if (!$isPdf) {
+    $contents = file_get_contents($file['tmp_name']);
+    if (preg_match('/<\?php|<\?=/i', $contents)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'File contains disallowed content.']);
+        exit;
+    }
 }
 
 // Folder whitelist
-$allowedFolders = ['directors', 'staff', 'gallery', 'news', 'hero', 'events'];
+$allowedFolders = ['directors', 'staff', 'gallery', 'news', 'hero', 'events', 'reports'];
 $folder = isset($_GET['folder']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower($_GET['folder'])) : 'directors';
 if (!in_array($folder, $allowedFolders)) {
     http_response_code(400);
