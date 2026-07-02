@@ -33,3 +33,13 @@ migrate2.php
 .env
 .env.local
 .env.production
+
+# Deploy credentials (never commit — use .env.deploy.example as template)
+.env.deploy
+
+# SSH keys for deploy (NEVER commit private keys)
+.ssh/
+*.pem
+*.ppk
+id_rsa
+id_rsa.*
