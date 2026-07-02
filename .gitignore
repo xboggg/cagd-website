@@ -43,3 +43,4 @@ migrate2.php
 *.ppk
 id_rsa
 id_rsa.*
+vite.config.ts.timestamp-*.mjs
