@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import RequireAuth from "@/components/auth/RequireAuth";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
 import Index from "./pages/Index";
@@ -58,6 +59,24 @@ import HeroSlidesManager from "@/pages/admin/HeroSlidesManager";
 import FAQManager from "@/pages/admin/FAQManager";
 import HomepageManager from "@/pages/admin/HomepageManager";
 import PagesContentManager from "@/pages/admin/PagesContentManager";
+import StaffDirectory from "@/pages/StaffDirectory";
+import StaffDirectoryManager from "@/pages/admin/StaffDirectoryManager";
+import SubscriptionsManager from "@/pages/admin/SubscriptionsManager";
+import FeedbackManager from "@/pages/admin/FeedbackManager";
+import StatusPage from "@/pages/Status";
+import FormsLibrary from "@/pages/FormsLibrary";
+import RegionalOfficesMap from "@/pages/RegionalOfficesMap";
+import ServiceStatusManager from "@/pages/admin/ServiceStatusManager";
+import FormsLibraryManager from "@/pages/admin/FormsLibraryManager";
+import AuditTrail from "@/pages/admin/AuditTrail";
+import AnnouncementsManager from "@/pages/admin/AnnouncementsManager";
+import StaffEventsManager from "@/pages/admin/StaffEventsManager";
+import StaffPortal from "@/pages/staff/StaffPortal";
+import Announcements from "@/pages/staff/Announcements";
+import BirthdayCalendar from "@/pages/staff/BirthdayCalendar";
+import InternalEvents from "@/pages/staff/InternalEvents";
+import OrgChart from "@/pages/staff/OrgChart";
+import RequireRole from "@/components/admin/RequireRole";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +136,23 @@ const App = () => (
                   {/* Contact & FAQ */}
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/faq" element={<FAQ />} />
+                  {/* Staff Directory */}
+                  <Route path="/staff-directory" element={<RequireAuth><StaffDirectory /></RequireAuth>} />
+                  {/* System Status */}
+                  <Route path="/status" element={<StatusPage />} />
+                  {/* Forms Library */}
+                  <Route path="/resources/forms" element={<FormsLibrary />} />
+                  {/* Regional Offices Map */}
+                  <Route path="/contact/offices" element={<RegionalOfficesMap />} />
+                </Route>
+
+                {/* Staff Portal — auth-gated */}
+                <Route path="/staff" element={<RequireAuth><PublicLayout /></RequireAuth>}>
+                  <Route index element={<StaffPortal />} />
+                  <Route path="announcements" element={<Announcements />} />
+                  <Route path="birthdays" element={<BirthdayCalendar />} />
+                  <Route path="events" element={<InternalEvents />} />
+                  <Route path="org-chart" element={<OrgChart />} />
                 </Route>
 
                 {/* Admin Auth */}
@@ -139,9 +175,17 @@ const App = () => (
                   <Route path="divisions" element={<DivisionsManager />} />
                   <Route path="projects" element={<ProjectsManager />} />
                   <Route path="regional-offices" element={<RegionalOfficesManager />} />
-                  <Route path="users" element={<UserManagement />} />
-                  <Route path="settings" element={<SiteSettings />} />
+                  <Route path="users" element={<RequireRole roles={["admin"]}><UserManagement /></RequireRole>} />
+                  <Route path="settings" element={<RequireRole roles={["admin"]}><SiteSettings /></RequireRole>} />
                   <Route path="messages" element={<ContactMessages />} />
+                  <Route path="staff" element={<StaffDirectoryManager />} />
+                  <Route path="subscriptions" element={<SubscriptionsManager />} />
+                  <Route path="feedback" element={<FeedbackManager />} />
+                  <Route path="service-status" element={<RequireRole roles={["admin"]}><ServiceStatusManager /></RequireRole>} />
+                  <Route path="forms" element={<FormsLibraryManager />} />
+                  <Route path="announcements" element={<AnnouncementsManager />} />
+                  <Route path="staff-events" element={<StaffEventsManager />} />
+                  <Route path="audit-trail" element={<RequireRole roles={["admin"]}><AuditTrail /></RequireRole>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

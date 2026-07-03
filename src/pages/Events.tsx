@@ -56,6 +56,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   Webinar: "bg-violet-100 text-violet-700",
 };
 
+/* Strip HTML tags for plain-text previews */
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+}
+
 function CategoryBadge({ category }: { category?: string | null }) {
   if (!category) return null;
   return (
@@ -132,7 +138,7 @@ function FeaturedEventCard({ event }: { event: EventItem }) {
                 {event.title}
               </h3>
               {event.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 max-w-lg">{event.description}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 max-w-lg">{stripHtml(event.description)}</p>
               )}
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><Calendar className="w-4 h-4 text-primary/70" />{formattedDate}</span>

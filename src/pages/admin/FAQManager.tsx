@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2, Loader2, HelpCircle, ChevronDown } from "lucide-r
 import { useToast } from "@/hooks/use-toast";
 import { saveSiteContent } from "@/hooks/useSiteContent";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 
 interface FAQItem {
   question: string;
@@ -65,6 +66,7 @@ export default function FAQManager() {
     const ok = await persist(updated);
     setSaving(false);
     if (ok) {
+      logAudit({ action: editingIndex !== null ? "update" : "create", resourceType: "faq", resourceTitle: form.question });
       toast({ title: editingIndex !== null ? "Updated" : "Added" });
       setDialogOpen(false);
       setEditingIndex(null);
@@ -73,6 +75,7 @@ export default function FAQManager() {
   };
 
   const handleDelete = async (index: number) => {
+    logAudit({ action: "delete", resourceType: "faq", resourceTitle: faqs[index]?.question });
     await persist(faqs.filter((_, i) => i !== index));
   };
 

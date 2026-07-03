@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 
 export default function DivisionsManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -25,11 +26,12 @@ export default function DivisionsManager() {
     if (editing) { ({ error } = await supabase.from("cagd_divisions").update(form).eq("id", editing.id)); }
     else { ({ error } = await supabase.from("cagd_divisions").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit({ action: editing ? "update" : "create", resourceType: "division", resourceId: editing?.id, resourceTitle: form.name });
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ name: "", description: "" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("cagd_divisions").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { const item = items.find(i => i.id === id); await supabase.from("cagd_divisions").delete().eq("id", id); logAudit({ action: "delete", resourceType: "division", resourceId: id, resourceTitle: item?.name }); fetchItems(); };
 
   return (
     <div>

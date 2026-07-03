@@ -15,6 +15,7 @@ import TagsInput from "@/components/TagsInput";
 import FileUpload from "@/components/FileUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { logAudit } from "@/lib/auditLog";
 import { useTableSort, SortableHead } from "@/components/admin/SortableTableHead";
 import { format } from "date-fns";
 import { translateToTwi, translateHtmlToTwi } from "@/lib/translate";
@@ -170,6 +171,7 @@ export default function NewsManager() {
       return;
     }
 
+    logAudit({ action: editing ? "update" : "create", resourceType: "news", resourceId: editing?.id, resourceTitle: form.title });
     toast({ title: editing ? "Updated" : "Created", description: "Twi translation auto-generated." });
     setDialogOpen(false);
     setEditing(null);
@@ -180,6 +182,7 @@ export default function NewsManager() {
   const handleDelete = async () => {
     if (!deleteDialog.item) return;
     await supabase.from("cagd_news").delete().eq("id", deleteDialog.item.id);
+    logAudit({ action: "delete", resourceType: "news", resourceId: deleteDialog.item.id, resourceTitle: deleteDialog.item.title });
     setDeleteDialog({ open: false, item: null });
     toast({ title: "Deleted", description: "News article has been deleted." });
     fetchItems();

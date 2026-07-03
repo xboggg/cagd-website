@@ -5,6 +5,7 @@ import { Target, Eye, Lightbulb, TrendingUp, Globe, Cpu, CheckCircle2, ArrowRigh
 import SEOHead from "@/components/SEOHead";
 import ParallaxHero from "@/components/ParallaxHero";
 import { Link } from "react-router-dom";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,21 +23,40 @@ export default function MissionVision() {
   const { scrollYProgress } = useScroll({ target: breakRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
 
-  const missionPillars = [
+  /* DB-driven mission & vision (falls back to translation keys) */
+  const { data: pageData } = useSiteContent<{
+    mission?: string;
+    vision?: string;
+    missionPillars?: { title: string; desc: string }[];
+    achievements?: string[];
+  }>("page_mission_vision", {});
+
+  const missionText = pageData.mission || t("missionVision.missionStatement");
+  const visionText = pageData.vision || t("missionVision.visionStatement");
+
+  const defaultPillars = [
     { icon: Lightbulb, title: t("missionVision.efficiency"), desc: t("missionVision.efficiencyDesc"), color: "from-amber-500 to-orange-500" },
     { icon: TrendingUp, title: t("missionVision.skilledStaff"), desc: t("missionVision.skilledStaffDesc"), color: "from-primary to-emerald-500" },
     { icon: Globe, title: t("missionVision.techDriven"), desc: t("missionVision.techDrivenDesc"), color: "from-blue-500 to-cyan-500" },
     { icon: Cpu, title: t("missionVision.innovationPillar"), desc: t("missionVision.innovationPillarDesc"), color: "from-purple-500 to-pink-500" },
   ];
+  const pillarIcons = [Lightbulb, TrendingUp, Globe, Cpu];
+  const pillarColors = ["from-amber-500 to-orange-500", "from-primary to-emerald-500", "from-blue-500 to-cyan-500", "from-purple-500 to-pink-500"];
 
-  const achievements = [
-    t("missionVision.achievement1"),
-    t("missionVision.achievement2"),
-    t("missionVision.achievement3"),
-    t("missionVision.achievement4"),
-    t("missionVision.achievement5"),
-    t("missionVision.achievement6"),
-  ];
+  const missionPillars = pageData.missionPillars && pageData.missionPillars.length > 0
+    ? pageData.missionPillars.map((p, i) => ({ icon: pillarIcons[i % pillarIcons.length], title: p.title, desc: p.desc, color: pillarColors[i % pillarColors.length] }))
+    : defaultPillars;
+
+  const achievements = pageData.achievements && pageData.achievements.length > 0
+    ? pageData.achievements
+    : [
+        t("missionVision.achievement1"),
+        t("missionVision.achievement2"),
+        t("missionVision.achievement3"),
+        t("missionVision.achievement4"),
+        t("missionVision.achievement5"),
+        t("missionVision.achievement6"),
+      ];
 
   return (
     <>
@@ -86,7 +106,7 @@ export default function MissionVision() {
 
                 <h2 className="font-heading font-extrabold text-3xl mb-6 text-foreground relative">{t("missionVision.ourMission")}</h2>
                 <p className="text-muted-foreground leading-[1.9] text-lg relative">
-                  {t("missionVision.missionStatement")}
+                  {missionText}
                 </p>
               </motion.div>
             </Reveal>
@@ -112,7 +132,7 @@ export default function MissionVision() {
 
                 <h2 className="font-heading font-extrabold text-3xl mb-6 text-foreground relative">{t("missionVision.ourVision")}</h2>
                 <p className="text-muted-foreground leading-[1.9] text-lg relative">
-                  {t("missionVision.visionStatement")}
+                  {visionText}
                 </p>
               </motion.div>
             </Reveal>

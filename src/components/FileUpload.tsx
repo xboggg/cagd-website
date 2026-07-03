@@ -4,6 +4,18 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Map Supabase bucket names → cPanel folder names
+const BUCKET_TO_FOLDER: Record<string, string> = {
+  "cagd-leadership": "directors",
+  "cagd-gallery": "gallery",
+  "cagd-hero-images": "hero",
+  "cagd-events": "events",
+  "cagd-news-images": "news",
+  "cagd-reports": "reports",
+  "cagd-announcements": "news",
+  "cagd-report-pdfs": "reports",
+};
+
 interface FileUploadProps {
   bucket: string;
   accept?: string;
@@ -49,44 +61,55 @@ export default function FileUpload({
 
     setUploading(true);
 
-    // Generate unique filename
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const folder = BUCKET_TO_FOLDER[bucket] || "uploads";
 
-    // Upload to Supabase Storage
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file);
+    // Get auth token for the PHP endpoint
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
 
-    if (error) {
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    if (!token) {
+      toast({ title: "Not authenticated", description: "Please log in again.", variant: "destructive" });
       setUploading(false);
       return;
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
+    // Upload to cPanel via PHP endpoint
+    const formData = new FormData();
+    formData.append("file", file);
 
-    const publicUrl = urlData.publicUrl;
+    try {
+      const res = await fetch(`/api/upload.php?folder=${folder}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
-    // Set preview for images
-    if (file.type.startsWith("image/")) {
-      setPreview(publicUrl);
-    } else {
-      setPreview(null);
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      const localUrl = result.url; // e.g. /images/directors/1234-abc.jpg
+
+      // Set preview for images
+      if (file.type.startsWith("image/")) {
+        setPreview(localUrl);
+      } else {
+        setPreview(localUrl.endsWith(".pdf") ? localUrl : null);
+      }
+
+      onUpload(localUrl, file.name, file.size);
+      toast({ title: "Upload complete", description: `${file.name} uploaded successfully.` });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Could not upload file",
+        variant: "destructive",
+      });
     }
 
-    onUpload(publicUrl, file.name, file.size);
     setUploading(false);
-
-    toast({ title: "Upload complete", description: `${file.name} uploaded successfully.` });
   };
 
   const handleRemove = async () => {

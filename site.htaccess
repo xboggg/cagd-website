@@ -1,0 +1,91 @@
+# HTTPS Redirect
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# React SPA - serve index.html for all routes except static files and cagd_old
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Redirect old wp-content URLs to cagd_old (preserves old image links)
+RewriteRule ^wp-content/(.*)$ /cagd_old/wp-content/$1 [L]
+
+# Skip cagd_old WordPress directory
+RewriteRule ^cagd_old(/.*)?$ - [L]
+
+# Skip new-site directory (legacy)
+RewriteRule ^new-site(/.*)?$ - [L]
+
+# FIX: Return 404 for missing assets instead of serving index.html
+# This prevents the browser from caching index.html content as a CSS/JS file
+RewriteRule ^assets/(.*)$ - [L,NC]
+
+# If the request is for an existing file or directory, serve it
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Otherwise serve index.html (React SPA routing)
+RewriteRule . /index.html [L]
+</IfModule>
+
+# Disable directory listings
+Options -Indexes
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://db.techtrendi.com https://*.tile.openstreetmap.org data: blob:; connect-src 'self' https://db.techtrendi.com https://cagd-chatbot.eadjekum.workers.dev; frame-ancestors 'none';"
+</IfModule>
+
+# Block access to sensitive files
+<FilesMatch "\.(env|sql|log|bak|old|sh|ini|conf)$">
+    Require all denied
+</FilesMatch>
+
+# Block .htaccess backup files
+<FilesMatch "^\.ht">
+    Require all denied
+</FilesMatch>
+
+# Browser Caching
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Hashed assets (content-addressed filenames) — safe to cache forever + immutable
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+# Gzip Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+</IfModule>
+
+# Disable caching for index.html (always serve latest)
+<Files "index.html">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+</Files>

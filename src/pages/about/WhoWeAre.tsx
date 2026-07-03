@@ -4,6 +4,7 @@ import { motion, useInView, useScroll, useTransform, useMotionValue, animate } f
 import { Building2, Users, Globe, Award, TrendingUp, Shield, Scale, ChevronDown, ChevronUp, Landmark, BookOpen, Heart, ShieldCheck, Sparkles } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import ParallaxHero from "@/components/ParallaxHero";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 /* ── Animated Counter ── */
 function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -80,38 +81,36 @@ export default function WhoWeAre() {
     t("mandate.item11"),
   ];
 
-  const coreValues = [
-    {
-      icon: Heart,
-      title: t("values.customersFirst"),
-      desc: t("values.customersFirstDesc"),
-      gradient: "from-rose-500 to-pink-600",
-    },
-    {
-      icon: Globe,
-      title: t("values.servingCountry"),
-      desc: t("values.servingCountryDesc"),
-      gradient: "from-primary to-emerald-500",
-    },
-    {
-      icon: ShieldCheck,
-      title: t("values.integrity"),
-      desc: t("values.integrityDesc"),
-      gradient: "from-blue-500 to-indigo-600",
-    },
-    {
-      icon: Users,
-      title: t("values.valuingPeople"),
-      desc: t("values.valuingPeopleDesc"),
-      gradient: "from-secondary to-yellow-500",
-    },
-    {
-      icon: Sparkles,
-      title: t("values.innovation"),
-      desc: t("values.innovationDesc"),
-      gradient: "from-violet-500 to-purple-600",
-    },
+  // Icon map for DB-driven core values
+  const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+    Heart, Globe, ShieldCheck, Users, Sparkles, Shield, Award, Building2, Scale, Landmark, BookOpen, TrendingUp,
+  };
+  const GRADIENTS = [
+    "from-rose-500 to-pink-600",
+    "from-primary to-emerald-500",
+    "from-blue-500 to-indigo-600",
+    "from-secondary to-yellow-500",
+    "from-violet-500 to-purple-600",
   ];
+
+  const defaultCoreValues = [
+    { icon: Heart, title: t("values.customersFirst"), desc: t("values.customersFirstDesc"), gradient: GRADIENTS[0] },
+    { icon: Globe, title: t("values.servingCountry"), desc: t("values.servingCountryDesc"), gradient: GRADIENTS[1] },
+    { icon: ShieldCheck, title: t("values.integrity"), desc: t("values.integrityDesc"), gradient: GRADIENTS[2] },
+    { icon: Users, title: t("values.valuingPeople"), desc: t("values.valuingPeopleDesc"), gradient: GRADIENTS[3] },
+    { icon: Sparkles, title: t("values.innovation"), desc: t("values.innovationDesc"), gradient: GRADIENTS[4] },
+  ];
+
+  const { data: dbValues } = useSiteContent<{ title: string; description: string; icon: string }[]>("page_core_values", []);
+
+  const coreValues = dbValues.length > 0
+    ? dbValues.map((v, i) => ({
+        icon: ICON_MAP[v.icon] || Heart,
+        title: v.title,
+        desc: v.description,
+        gradient: GRADIENTS[i % GRADIENTS.length],
+      }))
+    : defaultCoreValues;
   const sectionRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);

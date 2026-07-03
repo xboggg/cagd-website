@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { saveSiteContent } from "@/hooks/useSiteContent";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logAudit } from "@/lib/auditLog";
 
 // ── Types ──
 interface StatItem { label: string; value: string; icon: string; }
@@ -22,6 +23,39 @@ const KEYS = {
   coreFunctions: "homepage_core_functions",
   eServices: "homepage_eservices",
   quote: "homepage_leadership_quote",
+};
+
+const DEFAULT_STATS: StatItem[] = [
+  { value: "703+", label: "MDA spending units covered", icon: "Building2" },
+  { value: "16", label: "Regional offices nationwide", icon: "MapPin" },
+  { value: "6", label: "Divisions", icon: "LayoutGrid" },
+  { value: "150+", label: "Published Reports", icon: "FileText" },
+  { value: "31/36", label: "IPSAS standards adopted (of 36)", icon: "CheckCircle2" },
+  { value: "139+", label: "Years of Service", icon: "Clock" },
+];
+
+const DEFAULT_CORE_FUNCTIONS: CoreFunction[] = [
+  { icon: "CreditCard", title: "Revenue Collection", description: "Receive all public monies collected by or payable to the Government and manage their proper accounting and recording across all MDAs." },
+  { icon: "Shield", title: "Secure Custody", description: "Ensure safe keeping of all public monies, securities, and other financial instruments belonging to the Government of Ghana." },
+  { icon: "Users", title: "Government Disbursements", description: "Process and execute all government payments including salaries, pensions, grants, and supplier payments through established financial systems." },
+  { icon: "Landmark", title: "Account Establishment", description: "Open and operate bank accounts for the Government of Ghana with the Bank of Ghana and other approved financial institutions." },
+  { icon: "BookOpen", title: "Financial Reporting", description: "Prepare and submit consolidated financial statements of the government within three months of the end of each financial year." },
+  { icon: "BarChart3", title: "Accounting Standards", description: "Develop and implement accounting standards, policies, and procedures for all government entities and public sector organizations." },
+  { icon: "Globe", title: "Systems Development", description: "Design, develop, and maintain financial management information systems including GIFMIS, payroll systems, and electronic payment platforms." },
+  { icon: "FileText", title: "Exclusive Banking Authority", description: "Maintain exclusive authority over all government banking relationships, ensuring proper management of public funds in the banking system." },
+];
+
+const DEFAULT_ESERVICES: EService[] = [
+  { title: "e-Pay Services", description: "Access your electronic payslip via the GoG e-Pay platform", url: "https://gogepayservices.com", icon: "CreditCard", color: "from-primary to-emerald-500" },
+  { title: "EPV", description: "Electronic Payment Voucher — submit and track payment vouchers digitally", url: "https://www.gogepv.com", icon: "FileText", color: "from-blue-500 to-indigo-600" },
+  { title: "TPRS", description: "Third Party Referencing System for salary deduction management", url: "https://gogtprs.com", icon: "Users", color: "from-violet-500 to-purple-600" },
+  { title: "GIFMIS", description: "Ghana Integrated Financial Management Information System", url: "https://gifmis.gov.gh", icon: "Globe", color: "from-secondary to-yellow-600" },
+];
+
+const DEFAULT_QUOTE: QuoteData = {
+  text: "The Controller and Accountant-General's Department remains steadfast in its commitment to ensuring transparency, accountability, and efficiency in the management of Ghana's public finances — building systems that serve every citizen.",
+  author: "Mr. Kwasi Agyei",
+  title: "Controller & Accountant-General",
 };
 
 // ── Reusable JSON editor section ──
@@ -141,10 +175,22 @@ export default function HomepageManager() {
       const map: Record<string, string> = {};
       (rows || []).forEach(r => { if (r.value) map[r.key] = r.value; });
 
-      if (map[KEYS.stats]) try { setStats(JSON.parse(map[KEYS.stats])); } catch {}
-      if (map[KEYS.coreFunctions]) try { setCoreFunctions(JSON.parse(map[KEYS.coreFunctions])); } catch {}
-      if (map[KEYS.eServices]) try { setEServices(JSON.parse(map[KEYS.eServices])); } catch {}
-      if (map[KEYS.quote]) try { setQuote(JSON.parse(map[KEYS.quote])); } catch {}
+      if (map[KEYS.stats]) {
+        try { const p = JSON.parse(map[KEYS.stats]); setStats(p.length > 0 ? p : DEFAULT_STATS); } catch {}
+      } else setStats(DEFAULT_STATS);
+
+      if (map[KEYS.coreFunctions]) {
+        try { const p = JSON.parse(map[KEYS.coreFunctions]); setCoreFunctions(p.length > 0 ? p : DEFAULT_CORE_FUNCTIONS); } catch {}
+      } else setCoreFunctions(DEFAULT_CORE_FUNCTIONS);
+
+      if (map[KEYS.eServices]) {
+        try { const p = JSON.parse(map[KEYS.eServices]); setEServices(p.length > 0 ? p : DEFAULT_ESERVICES); } catch {}
+      } else setEServices(DEFAULT_ESERVICES);
+
+      if (map[KEYS.quote]) {
+        try { const p = JSON.parse(map[KEYS.quote]); setQuote(p.text ? p : DEFAULT_QUOTE); } catch {}
+      } else setQuote(DEFAULT_QUOTE);
+
       setLoading(false);
     })();
   }, []);
@@ -152,7 +198,7 @@ export default function HomepageManager() {
   const saveSection = (key: string) => async (items: any[]) => {
     const { error } = await saveSiteContent(key, items);
     if (error) toast({ title: "Error", description: error, variant: "destructive" });
-    else toast({ title: "Saved" });
+    else { logAudit({ action: "update", resourceType: "homepage", resourceTitle: key }); toast({ title: "Saved" }); }
   };
 
   const saveQuote = async () => {
@@ -160,7 +206,7 @@ export default function HomepageManager() {
     const { error } = await saveSiteContent(KEYS.quote, quote);
     setSavingQuote(false);
     if (error) toast({ title: "Error", description: error, variant: "destructive" });
-    else toast({ title: "Quote saved" });
+    else { logAudit({ action: "update", resourceType: "homepage", resourceTitle: "leadership_quote" }); toast({ title: "Quote saved" }); }
   };
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;

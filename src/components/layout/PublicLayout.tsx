@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import Footer from "./Footer";
 import BackToTop from "./BackToTop";
+import AnnouncementBanner from "./AnnouncementBanner";
 import SkipLinks from "@/components/SkipLinks";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -16,6 +17,7 @@ export default function PublicLayout() {
     <div className="flex flex-col min-h-screen overflow-x-hidden">
       <ScrollToTop />
       <SkipLinks />
+      <AnnouncementBanner />
       <Header />
       <main id="main-content" className="flex-1" role="main" aria-label="Main content">
         <AnimatePresence mode="wait">

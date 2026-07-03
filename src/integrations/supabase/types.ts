@@ -12,6 +12,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      cagd_event_registrations: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          email: string
+          phone: string | null
+          organization: string | null
+          notes: string | null
+          status: string
+          gender: string | null
+          participant_type: string | null
+          region: string | null
+          department: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          name: string
+          email: string
+          phone?: string | null
+          organization?: string | null
+          notes?: string | null
+          status?: string
+          gender?: string | null
+          participant_type?: string | null
+          region?: string | null
+          department?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          organization?: string | null
+          notes?: string | null
+          status?: string
+          gender?: string | null
+          participant_type?: string | null
+          region?: string | null
+          department?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       cagd_contact_messages: {
         Row: {
           id: string
@@ -452,18 +500,21 @@ export type Database = {
       cagd_user_roles: {
         Row: {
           created_at: string
+          email: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string

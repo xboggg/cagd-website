@@ -39,10 +39,11 @@ export default function Footer() {
 
   const resourceLinks = [
     { label: t("nav.reports"), path: "/reports" },
+    { label: "Forms & Documents", path: "/resources/forms" },
     { label: t("footer.newsUpdates"), path: "/news" },
-    { label: t("nav.events"), path: "/events" },
-    { label: t("nav.gallery"), path: "/gallery" },
-    { label: t("nav.faq"), path: "/faq" },
+{ label: t("nav.faq"), path: "/faq" },
+    { label: "Regional Offices", path: "/contact/offices" },
+    { label: "System Status", path: "/status" },
     { label: t("footer.contactUs"), path: "/contact" },
   ];
 

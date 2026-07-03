@@ -10,6 +10,7 @@ import SEOHead from "@/components/SEOHead";
 import { useToast } from "@/hooks/use-toast";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { resolveImagePath, getNewsField } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function NewsDetail() {
   const { t, i18n } = useTranslation();
@@ -167,9 +168,9 @@ export default function NewsDetail() {
                 )}
 
                 <div
-                  className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-foreground overflow-hidden break-words prose-headings:font-heading prose-headings:text-foreground prose-a:text-primary prose-a:underline prose-a:break-all prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground prose-pre:bg-muted prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:bg-muted prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-sm prose-hr:border-border prose-img:rounded-lg prose-img:max-w-full prose-img:h-auto prose-table:block prose-table:overflow-x-auto prose-table:max-w-full prose-td:min-w-[120px] prose-figure:max-w-full prose-iframe:max-w-full"
+                  className="prose prose-sm sm:prose-base md:prose-lg dark:prose-invert max-w-none text-foreground overflow-hidden break-words prose-headings:font-heading prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-a:underline prose-a:break-all prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground prose-pre:bg-muted prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:bg-muted prose-code:rounded prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-sm prose-hr:border-border prose-img:rounded-lg prose-img:max-w-full prose-img:h-auto prose-table:block prose-table:overflow-x-auto prose-table:max-w-full prose-td:min-w-[120px] prose-figure:max-w-full prose-iframe:max-w-full"
                   style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-                  dangerouslySetInnerHTML={{ __html: getNewsField(article, "content", i18n.language) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(getNewsField(article, "content", i18n.language)) }}
                 />
 
                 {/* Download PDF */}

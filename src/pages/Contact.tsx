@@ -305,6 +305,13 @@ export default function Contact() {
         return;
       }
 
+      // Send email notification (fire-and-forget — don't block on failure)
+      fetch("/contact-email.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || "", subject: form.subject, message: form.message }),
+      }).catch(() => {});
+
       setSubmitted(true);
       toast({ title: t("contactPage.successTitle"), description: t("contactPage.successDesc") });
       setTimeout(() => {

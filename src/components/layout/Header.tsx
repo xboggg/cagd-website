@@ -90,7 +90,13 @@ export default function Header() {
     const onScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          setScrolled(window.scrollY > 50);
+          const y = window.scrollY;
+          setScrolled((prev) => {
+            // Hysteresis: scroll down triggers at 50px, scroll up clears at 20px
+            if (!prev && y > 50) return true;
+            if (prev && y < 20) return false;
+            return prev;
+          });
           ticking = false;
         });
         ticking = true;
@@ -122,7 +128,7 @@ export default function Header() {
       {/* Combined header wrapper — fixed on homepage, sticky otherwise */}
       <header
         className={cn(
-          "z-50 left-0 right-0 transition-all duration-300",
+          "z-50 left-0 right-0 transition-[background-color,box-shadow,border-color,backdrop-filter,color] duration-300",
           isHome ? "fixed top-0" : "sticky top-0",
           isTransparent
             ? "bg-transparent text-white"

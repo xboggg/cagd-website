@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { logAudit, clearAuditCache } from "@/lib/auditLog";
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isEditor: boolean;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,44 +23,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const roleCache = useRef<Record<string, string>>({});
+  const fetchingRole = useRef(false);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("cagd_user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole(data?.role || null);
-  };
+  const fetchRole = useCallback(async (userId: string) => {
+    // Return cached role instantly if available
+    if (roleCache.current[userId]) {
+      setRole(roleCache.current[userId]);
+      return;
+    }
+
+    // Prevent duplicate concurrent fetches
+    if (fetchingRole.current) return;
+    fetchingRole.current = true;
+
+    try {
+      const { data, error } = await supabase
+        .from("cagd_user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!error && data?.role) {
+        roleCache.current[userId] = data.role;
+        setRole(data.role);
+      } else {
+        setRole(null);
+      }
+    } catch {
+      setRole(null);
+    } finally {
+      fetchingRole.current = false;
+    }
+  }, []);
+
+  const refreshRole = useCallback(async () => {
+    if (user?.id) {
+      roleCache.current = {};
+      fetchingRole.current = false;
+      await fetchRole(user.id);
+    }
+  }, [user?.id, fetchRole]);
 
   useEffect(() => {
+    let mounted = true;
+
+    // Get initial session first — this is the primary source of truth on page load
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!mounted) return;
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      if (initialSession?.user) {
+        await fetchRole(initialSession.user.id);
+      }
+      if (mounted) setLoading(false);
+    });
+
+    // Listen for subsequent auth events (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(() => fetchRole(session.user.id), 0);
+      (_event, newSession) => {
+        if (!mounted) return;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        if (newSession?.user) {
+          // Use cached role if available, fetch only if not cached
+          if (roleCache.current[newSession.user.id]) {
+            setRole(roleCache.current[newSession.user.id]);
+          } else {
+            fetchRole(newSession.user.id);
+          }
         } else {
           setRole(null);
+          roleCache.current = {};
         }
+        // Ensure loading is false after any auth event
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchRole]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      logAudit({ action: "login", resourceType: "auth", resourceTitle: email });
+    }
     return { error };
   };
 
@@ -75,6 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    logAudit({ action: "logout", resourceType: "auth" });
+    clearAuditCache();
+    roleCache.current = {};
     await supabase.auth.signOut();
   };
 
@@ -90,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         isAdmin: role === "admin",
         isEditor: role === "editor",
+        refreshRole,
       }}
     >
       {children}

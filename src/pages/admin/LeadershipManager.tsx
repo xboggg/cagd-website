@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import { useTableSort, SortableHead } from "@/components/admin/SortableTableHead";
+import { logAudit } from "@/lib/auditLog";
 
 export default function LeadershipManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -37,11 +38,12 @@ export default function LeadershipManager() {
     if (editing) { ({ error } = await supabase.from("cagd_management_profiles").update(form).eq("id", editing.id)); }
     else { ({ error } = await supabase.from("cagd_management_profiles").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit({ action: editing ? "update" : "create", resourceType: "leadership", resourceId: editing?.id, resourceTitle: form.name });
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("cagd_management_profiles").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { const item = items.find(i => i.id === id); await supabase.from("cagd_management_profiles").delete().eq("id", id); logAudit({ action: "delete", resourceType: "leadership", resourceId: id, resourceTitle: item?.name }); fetchItems(); };
 
   const openEdit = (item: any) => {
     setEditing(item);

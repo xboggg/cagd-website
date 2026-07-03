@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 
 export default function ProjectsManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -26,11 +27,12 @@ export default function ProjectsManager() {
     if (editing) { ({ error } = await supabase.from("cagd_projects").update(form).eq("id", editing.id)); }
     else { ({ error } = await supabase.from("cagd_projects").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    logAudit({ action: editing ? "update" : "create", resourceType: "project", resourceId: editing?.id, resourceTitle: form.name });
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ name: "", description: "", status: "active" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("cagd_projects").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { const item = items.find(i => i.id === id); await supabase.from("cagd_projects").delete().eq("id", id); logAudit({ action: "delete", resourceType: "project", resourceId: id, resourceTitle: item?.name }); fetchItems(); };
 
   return (
     <div>

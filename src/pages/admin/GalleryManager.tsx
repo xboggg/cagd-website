@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import FileUpload from "@/components/FileUpload";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { logAudit } from "@/lib/auditLog";
 
 interface Photo {
   id: string;
@@ -46,11 +47,16 @@ export default function GalleryManager() {
   const { toast } = useToast();
 
   const fetchAlbums = async () => {
-    const { data } = await supabase
-      .from("cagd_gallery_albums")
-      .select("*, cagd_gallery_photos(count)")
-      .order("album_date", { ascending: false });
-    setAlbums(data || []);
+    try {
+      const { data } = await supabase
+        .from("cagd_gallery_albums")
+        .select("*, cagd_gallery_photos(count)")
+        .order("album_date", { ascending: false })
+        .abortSignal(AbortSignal.timeout(8000));
+      setAlbums(data || []);
+    } catch {
+      setAlbums([]);
+    }
     setLoading(false);
   };
 
@@ -96,6 +102,7 @@ export default function GalleryManager() {
       return;
     }
 
+    logAudit({ action: editing ? "update" : "create", resourceType: "gallery_album", resourceId: editing?.id, resourceTitle: form.title });
     toast({ title: editing ? "Album updated" : "Album created" });
     setDialogOpen(false);
     setEditing(null);
@@ -117,10 +124,12 @@ export default function GalleryManager() {
       await supabase.from("cagd_gallery_photos").delete().eq("album_id", deleteDialog.item.id);
       // Then delete album
       await supabase.from("cagd_gallery_albums").delete().eq("id", deleteDialog.item.id);
+      logAudit({ action: "delete", resourceType: "gallery_album", resourceId: deleteDialog.item.id, resourceTitle: deleteDialog.item.title });
       toast({ title: "Album deleted" });
       fetchAlbums();
     } else {
       await supabase.from("cagd_gallery_photos").delete().eq("id", deleteDialog.item.id);
+      logAudit({ action: "delete", resourceType: "gallery_photo", resourceId: deleteDialog.item.id, resourceTitle: deleteDialog.item.caption });
       toast({ title: "Photo deleted" });
       if (selectedAlbum) fetchPhotos(selectedAlbum.id);
     }
@@ -202,23 +211,37 @@ export default function GalleryManager() {
       const file = validFiles[i];
       setUploadQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: "uploading", progress: 30 } : item));
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Upload to cPanel via PHP endpoint
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        setUploadQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: "error", progress: 100 } : item));
+        continue;
+      }
 
-      const { error: uploadError } = await supabase.storage.from("cagd-gallery").upload(fileName, file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-      if (uploadError) {
+      let localUrl = "";
+      try {
+        const res = await fetch("/api/upload.php?folder=gallery", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const result = await res.json();
+        if (!res.ok || result.error) throw new Error(result.error);
+        localUrl = result.url;
+      } catch {
         setUploadQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: "error", progress: 100 } : item));
         continue;
       }
 
       setUploadQueue(prev => prev.map((item, idx) => idx === i ? { ...item, progress: 70 } : item));
 
-      const { data: urlData } = supabase.storage.from("cagd-gallery").getPublicUrl(fileName);
-
       await supabase.from("cagd_gallery_photos").insert({
         album_id: selectedAlbum.id,
-        image_url: urlData.publicUrl,
+        image_url: localUrl,
         caption: file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         display_order: maxOrder + i + 1,
       });
@@ -510,87 +533,74 @@ export default function GalleryManager() {
           <p>No albums yet. Create your first album!</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {topLevelAlbums.map((album) => {
             const subAlbums = getSubAlbums(album.id);
             return (
-              <div key={album.id}>
+              <div key={album.id} className="space-y-2">
                 {/* Parent Album Card */}
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedAlbum(album)}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {album.title}
-                        {subAlbums.length > 0 && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-normal">
-                            {subAlbums.length} sub-album{subAlbums.length > 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </CardTitle>
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button size="icon" variant="ghost" onClick={() => openEditAlbum(album)}>
-                          <Pencil className="w-4 h-4" />
+                <Card className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden" onClick={() => setSelectedAlbum(album)}>
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    {album.cover_image ? (
+                      <img src={album.cover_image} alt={album.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Image className="w-8 h-8 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    {subAlbums.length > 0 && (
+                      <span className="absolute top-2 left-2 text-xs bg-black/60 text-white px-2 py-0.5 rounded-full">
+                        {subAlbums.length} sub-album{subAlbums.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{album.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {album.cagd_gallery_photos?.[0]?.count || 0} photos
+                          {album.album_date && ` • ${new Date(album.album_date).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAlbum(album)}>
+                          <Pencil className="w-3 h-3" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, item: album, type: "album" })}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteDialog({ open: true, item: album, type: "album" })}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-32 bg-muted rounded flex items-center justify-center overflow-hidden">
-                      {album.cover_image ? (
-                        <img src={album.cover_image} alt={album.title} className="h-full w-full object-cover" />
-                      ) : (
-                        <Image className="w-8 h-8 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-muted-foreground">
-                        {album.cagd_gallery_photos?.[0]?.count || 0} photos
-                      </p>
-                      {album.album_date && (
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(album.album_date).toLocaleDateString()}
-                        </p>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Sub-Albums (nested underneath) */}
-                {subAlbums.length > 0 && (
-                  <div className="ml-6 mt-2 border-l-2 border-primary/20 pl-4 space-y-2">
-                    {subAlbums.map((sub) => (
-                      <Card key={sub.id} className="cursor-pointer hover:shadow-md transition-shadow bg-muted/30" onClick={() => setSelectedAlbum(sub)}>
-                        <CardContent className="p-3 flex items-center gap-3">
-                          <div className="w-16 h-16 bg-muted rounded flex items-center justify-center overflow-hidden shrink-0">
-                            {sub.cover_image ? (
-                              <img src={sub.cover_image} alt={sub.title} className="h-full w-full object-cover" />
-                            ) : (
-                              <Image className="w-5 h-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{sub.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {sub.cagd_gallery_photos?.[0]?.count || 0} photos
-                              {sub.album_date && ` • ${new Date(sub.album_date).toLocaleDateString()}`}
-                            </p>
-                          </div>
-                          <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditAlbum(sub)}>
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteDialog({ open: true, item: sub, type: "album" })}>
-                              <Trash2 className="w-3 h-3 text-destructive" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                {/* Sub-Albums */}
+                {subAlbums.map((sub) => (
+                  <Card key={sub.id} className="cursor-pointer hover:shadow-md transition-shadow bg-muted/30 overflow-hidden ml-3 border-l-2 border-primary/30" onClick={() => setSelectedAlbum(sub)}>
+                    <CardContent className="p-2 flex items-center gap-2">
+                      <div className="w-12 h-12 bg-muted rounded flex items-center justify-center overflow-hidden shrink-0">
+                        {sub.cover_image ? (
+                          <img src={sub.cover_image} alt={sub.title} className="h-full w-full object-cover" />
+                        ) : (
+                          <Image className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">{sub.title}</p>
+                        <p className="text-xs text-muted-foreground">{sub.cagd_gallery_photos?.[0]?.count || 0} photos</p>
+                      </div>
+                      <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEditAlbum(sub)}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setDeleteDialog({ open: true, item: sub, type: "album" })}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             );
           })}
