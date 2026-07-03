@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
+import { resolveImagePath } from "@/lib/utils";
 
 export default function Gallery() {
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
@@ -13,7 +14,7 @@ export default function Gallery() {
   const { data: albums = [], isLoading: albumsLoading } = useQuery({
     queryKey: ["public-albums"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("gallery_albums").select("*").order("album_date", { ascending: false });
+      const { data, error } = await supabase.from("cagd_gallery_albums").select("*").order("album_date", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -23,7 +24,7 @@ export default function Gallery() {
     queryKey: ["public-photos", selectedAlbumId],
     queryFn: async () => {
       if (!selectedAlbumId) return [];
-      const { data, error } = await supabase.from("gallery_photos").select("*").eq("album_id", selectedAlbumId).order("display_order");
+      const { data, error } = await supabase.from("cagd_gallery_photos").select("*").eq("album_id", selectedAlbumId).order("display_order");
       if (error) throw error;
       return data;
     },
@@ -37,12 +38,20 @@ export default function Gallery() {
     <>
       <SEOHead title="Gallery" description="Browse photos from CAGD events, conferences, workshops, and official engagements." path="/gallery" />
 
-      <section className="bg-accent text-accent-foreground py-12 md:py-20">
-        <div className="container">
+      <section
+        className="relative py-16 md:py-24 text-white"
+        style={{
+          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-primary/85" />
+        <div className="container relative z-10">
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-5xl font-heading font-bold mb-4">
             Gallery
           </motion.h1>
-          <p className="text-accent-foreground/80 max-w-2xl">
+          <p className="text-white/80 max-w-2xl">
             Browse photos from CAGD events, conferences, workshops, and official engagements.
           </p>
         </div>
@@ -69,9 +78,9 @@ export default function Gallery() {
                       onClick={() => setSelectedAlbumId(album.id)}
                       className="card-elevated overflow-hidden text-left group"
                     >
-                      <div className={`h-48 overflow-hidden ${album.cover_image ? "" : `bg-gradient-to-br ${colors[i % colors.length]}`} flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-500`}>
+                      <div className={`h-48 overflow-hidden ${album.cover_image ? "" : `bg-gradient-to-br ${colors[i % colors.length]}`} flex items-center justify-center group-hover:scale-105 transition-all duration-500`}>
                         {album.cover_image ? (
-                          <img src={album.cover_image} alt={album.title} className="w-full h-full object-cover" loading="lazy" />
+                          <img src={resolveImagePath(album.cover_image)!} alt={album.title} className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <Camera className="w-12 h-12 text-muted-foreground/40" />
                         )}
@@ -107,9 +116,9 @@ export default function Gallery() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
                     onClick={() => setLightboxIdx(idx)}
-                    className="aspect-square rounded-lg overflow-hidden cursor-pointer grayscale hover:grayscale-0 transition-all duration-300 hover:scale-105"
+                    className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-300 hover:scale-105"
                   >
-                    <img src={photo.image_url} alt={photo.caption || ""} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={resolveImagePath(photo.image_url)!} alt={photo.caption || ""} className="w-full h-full object-cover" loading="lazy" />
                   </motion.button>
                 ))}
               </div>
@@ -135,7 +144,7 @@ export default function Gallery() {
               <ChevronLeft className="w-10 h-10" />
             </button>
             <div className="max-w-3xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <img src={photos[lightboxIdx].image_url} alt={photos[lightboxIdx].caption || ""} className="w-full max-h-[80vh] object-contain rounded-lg" />
+              <img src={resolveImagePath(photos[lightboxIdx].image_url)!} alt={photos[lightboxIdx].caption || ""} className="w-full max-h-[80vh] object-contain rounded-lg" />
               <p className="text-center text-white/80 mt-4 text-sm">
                 {photos[lightboxIdx].caption} ({lightboxIdx + 1}/{photos.length})
               </p>

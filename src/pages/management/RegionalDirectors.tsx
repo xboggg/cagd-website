@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { MapPin, Phone, Mail, User, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, resolveImagePath } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
@@ -41,20 +41,32 @@ export default function RegionalDirectors() {
   const { data: offices = [], isLoading } = useQuery({
     queryKey: ["public-regional-offices"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("regional_offices").select("*").order("region");
+      const { data, error } = await supabase.from("cagd_regional_offices").select("*").order("region");
       if (error) throw error;
       return data;
     },
   });
 
-  const selectedOffice = offices.find((o) => o.region === selected);
+  const selectedOffice = offices.find((o) => {
+    if (!selected) return false;
+    const normalized = o.region.replace(/ Region$/i, "");
+    return normalized === selected || o.region === selected;
+  });
 
   return (
     <>
       <SEOHead title="Regional Directors" description="CAGD operates across all 16 regions of Ghana. View regional directors and office contacts." path="/management/regional-directors" />
 
-      <section className="bg-accent text-accent-foreground py-16 md:py-24">
-        <div className="container">
+      <section
+        className="relative py-16 md:py-24 text-white"
+        style={{
+          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-primary/85" />
+        <div className="container relative z-10">
           <FadeIn>
             <h1 className="text-3xl md:text-5xl font-heading font-extrabold text-white">Regional Directors</h1>
             <p className="mt-4 text-lg text-white/80 max-w-2xl">CAGD operates across all 16 regions of Ghana. Click a region on the map to view the director's profile.</p>
@@ -76,7 +88,7 @@ export default function RegionalDirectors() {
                   <svg viewBox="0 0 270 340" className="w-full max-w-md mx-auto">
                     {Object.entries(regionPaths).map(([region, { d, cx, cy }]) => {
                       const isSelected = selected === region;
-                      const hasOffice = offices.some((o) => o.region === region);
+                      const hasOffice = offices.some((o) => o.region.replace(/ Region$/i, "") === region);
                       return (
                         <g key={region} onClick={() => setSelected(region)} className="cursor-pointer">
                           <motion.path
@@ -105,13 +117,21 @@ export default function RegionalDirectors() {
                 <AnimatePresence mode="wait">
                   {selectedOffice ? (
                     <motion.div key={selectedOffice.region} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="card-elevated overflow-hidden">
-                      <div className="bg-primary/10 p-6 flex items-center justify-between">
-                        <div>
+                      <div className="bg-primary/10 p-5 flex items-start gap-4">
+                        {/* Director photo */}
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted shrink-0">
+                          {selectedOffice.director_photo ? (
+                            <img src={resolveImagePath(selectedOffice.director_photo)!} alt={selectedOffice.director_name || ""} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><User className="h-8 w-8 text-primary/30" /></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-xs font-heading font-bold text-primary uppercase tracking-wider">{selectedOffice.region} Region</p>
                           <h3 className="font-heading font-bold text-xl mt-1">{selectedOffice.director_name || "TBD"}</h3>
                           <p className="text-sm text-muted-foreground">Regional Director</p>
                         </div>
-                        <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-muted transition-colors">
+                        <button onClick={() => setSelected(null)} className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -149,13 +169,13 @@ export default function RegionalDirectors() {
             {offices.map((office, i) => (
               <FadeIn key={office.id} delay={i * 0.04}>
                 <button
-                  onClick={() => { setSelected(office.region); window.scrollTo({ top: 300, behavior: "smooth" }); }}
-                  className={cn("card-elevated p-4 w-full text-left hover:border-primary/30 transition-colors", selected === office.region && "border-primary ring-1 ring-primary/20")}
+                  onClick={() => { setSelected(office.region.replace(/ Region$/i, "")); window.scrollTo({ top: 300, behavior: "smooth" }); }}
+                  className={cn("card-elevated p-4 w-full text-left hover:border-primary/30 transition-colors", selected === office.region.replace(/ Region$/i, "") && "border-primary ring-1 ring-primary/20")}
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {office.director_photo ? (
-                        <img src={office.director_photo} alt={office.director_name || ""} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={resolveImagePath(office.director_photo)!} alt={office.director_name || ""} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <User className="h-5 w-5 text-primary" />
                       )}

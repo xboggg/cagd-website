@@ -16,19 +16,19 @@ export default function SiteSettings() {
   const [form, setForm] = useState({ key: "", value: "" });
   const { toast } = useToast();
 
-  const fetchItems = async () => { const { data } = await supabase.from("site_settings").select("*").order("key"); setItems(data || []); setLoading(false); };
+  const fetchItems = async () => { const { data } = await supabase.from("cagd_site_settings").select("*").order("key"); setItems(data || []); setLoading(false); };
   useEffect(() => { fetchItems(); }, []);
 
   const handleSave = async () => {
     let error;
-    if (editing) { ({ error } = await supabase.from("site_settings").update({ value: form.value }).eq("id", editing.id)); }
-    else { ({ error } = await supabase.from("site_settings").insert(form)); }
+    if (editing) { ({ error } = await supabase.from("cagd_site_settings").update({ value: form.value }).eq("id", editing.id)); }
+    else { ({ error } = await supabase.from("cagd_site_settings").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Saved" });
     setDialogOpen(false); setEditing(null); setForm({ key: "", value: "" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("site_settings").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { await supabase.from("cagd_site_settings").delete().eq("id", id); fetchItems(); };
 
   return (
     <div>

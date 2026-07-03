@@ -1,0 +1,13 @@
+option batch continue
+option confirm off
+open ftp://terrdnjk:j8BVaYKorr11@premium328.web-hosting.com
+lcd dist
+cd /public_html/cagd.gov.gh/new-site
+put index.html
+put .htaccess
+cd assets
+lcd assets
+put .htaccess
+put index-DnVcY0Us.js
+put index-CdqYbG-x.css
+exit

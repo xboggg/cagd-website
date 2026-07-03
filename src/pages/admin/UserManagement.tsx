@@ -22,8 +22,8 @@ export default function UserManagement() {
 
   const fetchData = async () => {
     const [rolesRes, profilesRes] = await Promise.all([
-      supabase.from("user_roles").select("*"),
-      supabase.from("profiles").select("*"),
+      supabase.from("cagd_user_roles").select("*"),
+      supabase.from("cagd_profiles").select("*"),
     ]);
     setRoles(rolesRes.data || []);
     setProfiles(profilesRes.data || []);
@@ -42,7 +42,7 @@ export default function UserManagement() {
     const { data, error } = await supabase.auth.signUp({ email: form.email, password: form.password });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     if (data.user) {
-      const { error: roleError } = await supabase.from("user_roles").insert({ user_id: data.user.id, role: form.role as any });
+      const { error: roleError } = await supabase.from("cagd_user_roles").insert({ user_id: data.user.id, role: form.role as any });
       if (roleError) { toast({ title: "User created but role assignment failed", description: roleError.message, variant: "destructive" }); return; }
     }
     toast({ title: "User created with role: " + form.role });
@@ -50,7 +50,7 @@ export default function UserManagement() {
   };
 
   const handleDeleteRole = async (id: string) => {
-    await supabase.from("user_roles").delete().eq("id", id);
+    await supabase.from("cagd_user_roles").delete().eq("id", id);
     fetchData();
   };
 

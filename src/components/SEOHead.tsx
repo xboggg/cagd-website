@@ -5,12 +5,16 @@ interface SEOHeadProps {
   description: string;
   path?: string;
   type?: string;
+  image?: string;
   jsonLd?: Record<string, unknown>;
 }
 
-export default function SEOHead({ title, description, path = "/", type = "WebPage", jsonLd }: SEOHeadProps) {
+const DEFAULT_OG_IMAGE = "https://cagd.gov.gh/new-site/images/og-image.jpg";
+
+export default function SEOHead({ title, description, path = "/", type = "WebPage", image, jsonLd }: SEOHeadProps) {
   const fullTitle = `${title} | CAGD Ghana`;
   const url = `https://cagd.gov.gh${path}`;
+  const ogImage = image || DEFAULT_OG_IMAGE;
 
   useEffect(() => {
     document.title = fullTitle;
@@ -30,9 +34,13 @@ export default function SEOHead({ title, description, path = "/", type = "WebPag
     setMeta("og:description", description, "property");
     setMeta("og:url", url, "property");
     setMeta("og:type", "website", "property");
-    setMeta("twitter:card", "summary");
+    setMeta("og:image", ogImage, "property");
+    setMeta("og:image:width", "1200", "property");
+    setMeta("og:image:height", "630", "property");
+    setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", fullTitle);
     setMeta("twitter:description", description);
+    setMeta("twitter:image", ogImage);
 
     // Canonical
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
@@ -69,7 +77,7 @@ export default function SEOHead({ title, description, path = "/", type = "WebPag
     return () => {
       document.title = "CAGD Ghana";
     };
-  }, [fullTitle, description, url, type, jsonLd]);
+  }, [fullTitle, description, url, type, ogImage, jsonLd]);
 
   return null;
 }

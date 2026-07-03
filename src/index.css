@@ -136,3 +136,12 @@
     @apply rounded-lg bg-card shadow-md hover:shadow-lg transition-shadow border border-border;
   }
 }
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(16, 185, 129, 0.55); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}

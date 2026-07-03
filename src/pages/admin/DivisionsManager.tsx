@@ -17,19 +17,19 @@ export default function DivisionsManager() {
   const [form, setForm] = useState({ name: "", description: "" });
   const { toast } = useToast();
 
-  const fetchItems = async () => { const { data } = await supabase.from("divisions").select("*").order("name"); setItems(data || []); setLoading(false); };
+  const fetchItems = async () => { const { data } = await supabase.from("cagd_divisions").select("*").order("name"); setItems(data || []); setLoading(false); };
   useEffect(() => { fetchItems(); }, []);
 
   const handleSave = async () => {
     let error;
-    if (editing) { ({ error } = await supabase.from("divisions").update(form).eq("id", editing.id)); }
-    else { ({ error } = await supabase.from("divisions").insert(form)); }
+    if (editing) { ({ error } = await supabase.from("cagd_divisions").update(form).eq("id", editing.id)); }
+    else { ({ error } = await supabase.from("cagd_divisions").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ name: "", description: "" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("divisions").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { await supabase.from("cagd_divisions").delete().eq("id", id); fetchItems(); };
 
   return (
     <div>

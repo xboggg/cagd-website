@@ -18,11 +18,11 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       const [newsRes, reportsRes, eventsRes, albumsRes, profilesRes] = await Promise.all([
-        supabase.from("news").select("id", { count: "exact", head: true }),
-        supabase.from("reports").select("id, download_count"),
-        supabase.from("events").select("id", { count: "exact", head: true }),
-        supabase.from("gallery_albums").select("id", { count: "exact", head: true }),
-        supabase.from("management_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("cagd_news").select("id", { count: "exact", head: true }),
+        supabase.from("cagd_reports").select("id, download_count"),
+        supabase.from("cagd_events").select("id", { count: "exact", head: true }),
+        supabase.from("cagd_gallery_albums").select("id", { count: "exact", head: true }),
+        supabase.from("cagd_management_profiles").select("id", { count: "exact", head: true }),
       ]);
       const totalDownloads = (reportsRes.data || []).reduce((sum: number, r: any) => sum + (r.download_count || 0), 0);
       setStats({

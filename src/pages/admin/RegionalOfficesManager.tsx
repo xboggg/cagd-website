@@ -16,19 +16,19 @@ export default function RegionalOfficesManager() {
   const [form, setForm] = useState({ region: "", phone: "", email: "", address: "", director_name: "", director_photo: "" });
   const { toast } = useToast();
 
-  const fetchItems = async () => { const { data } = await supabase.from("regional_offices").select("*").order("region"); setItems(data || []); setLoading(false); };
+  const fetchItems = async () => { const { data } = await supabase.from("cagd_regional_offices").select("*").order("region"); setItems(data || []); setLoading(false); };
   useEffect(() => { fetchItems(); }, []);
 
   const handleSave = async () => {
     let error;
-    if (editing) { ({ error } = await supabase.from("regional_offices").update(form).eq("id", editing.id)); }
-    else { ({ error } = await supabase.from("regional_offices").insert(form)); }
+    if (editing) { ({ error } = await supabase.from("cagd_regional_offices").update(form).eq("id", editing.id)); }
+    else { ({ error } = await supabase.from("cagd_regional_offices").insert(form)); }
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: editing ? "Updated" : "Created" });
     setDialogOpen(false); setEditing(null); setForm({ region: "", phone: "", email: "", address: "", director_name: "", director_photo: "" }); fetchItems();
   };
 
-  const handleDelete = async (id: string) => { await supabase.from("regional_offices").delete().eq("id", id); fetchItems(); };
+  const handleDelete = async (id: string) => { await supabase.from("cagd_regional_offices").delete().eq("id", id); fetchItems(); };
 
   const openEdit = (item: any) => {
     setEditing(item);

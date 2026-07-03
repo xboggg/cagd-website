@@ -49,8 +49,16 @@ export default function FAQ() {
   return (
     <>
       <SEOHead title="FAQ" description="Find answers to common questions about CAGD services, systems, and procedures." path="/faq" />
-      <section className="bg-accent text-accent-foreground py-12 md:py-20">
-        <div className="container">
+      <section
+        className="relative py-16 md:py-24 text-white"
+        style={{
+          backgroundImage: `url('/new-site/images/hero/news-hero.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-primary/85" />
+        <div className="container relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -58,7 +66,7 @@ export default function FAQ() {
           >
             Frequently Asked Questions
           </motion.h1>
-          <p className="text-accent-foreground/80 max-w-2xl">
+          <p className="text-white/80 max-w-2xl">
             Find answers to common questions about CAGD services, systems, and procedures.
           </p>
         </div>
