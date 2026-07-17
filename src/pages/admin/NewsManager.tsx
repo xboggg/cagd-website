@@ -22,6 +22,7 @@ import { translateToTwi, translateHtmlToTwi } from "@/lib/translate";
 
 const CATEGORIES = ["General", "Announcements", "Digest", "Payroll", "IPSAS", "GIFMIS", "Treasury", "Training", "Press Release", "Circular", "Reforms", "Regional", "Events"];
 const DRAFT_KEY = "cagd_news_draft";
+const editDraftKey = (id: string) => `cagd_news_edit_${id}`;
 const ITEMS_PER_PAGE = 15;
 
 interface NewsForm {
@@ -86,13 +87,15 @@ export default function NewsManager() {
 
   useEffect(() => { fetchItems(); }, []);
 
-  // Auto-save new post draft to localStorage
+  // Auto-save draft to localStorage (new posts AND edits)
   useEffect(() => {
-    if (dialogOpen && !editing) {
-      const hasContent = form.title || form.excerpt || form.content;
-      if (hasContent) {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
-      }
+    if (!dialogOpen) return;
+    const hasContent = form.title || form.excerpt || form.content;
+    if (!hasContent) return;
+    if (editing) {
+      localStorage.setItem(editDraftKey(editing.id), JSON.stringify(form));
+    } else {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     }
   }, [form, dialogOpen, editing]);
 
@@ -185,7 +188,8 @@ export default function NewsManager() {
 
     logAudit({ action: editing ? "update" : "create", resourceType: "news", resourceId: editing?.id, resourceTitle: form.title });
     toast({ title: editing ? "Updated" : "Created", description: "Twi translation auto-generated." });
-    if (!editing) localStorage.removeItem(DRAFT_KEY);
+    if (editing) localStorage.removeItem(editDraftKey(editing.id));
+    else localStorage.removeItem(DRAFT_KEY);
     setDraftRestored(false);
     setDialogOpen(false);
     setEditing(null);
@@ -204,6 +208,23 @@ export default function NewsManager() {
 
   const openEdit = (item: any) => {
     setEditing(item);
+    const saved = localStorage.getItem(editDraftKey(item.id));
+    if (saved) {
+      try {
+        setForm(JSON.parse(saved));
+        setDraftRestored(true);
+      } catch {
+        loadEditForm(item);
+        setDraftRestored(false);
+      }
+    } else {
+      loadEditForm(item);
+      setDraftRestored(false);
+    }
+    setDialogOpen(true);
+  };
+
+  const loadEditForm = (item: any) => {
     setForm({
       title: item.title,
       title_tw: item.title_tw || "",
@@ -219,7 +240,6 @@ export default function NewsManager() {
       tags: item.tags || [],
       publish_date: item.publish_date ? item.publish_date.slice(0, 16) : "",
     });
-    setDialogOpen(true);
   };
 
   const openNew = () => {
@@ -296,7 +316,16 @@ export default function NewsManager() {
                 <span>Draft restored — your unsaved work is back.</span>
                 <button
                   className="text-xs underline ml-4 shrink-0"
-                  onClick={() => { localStorage.removeItem(DRAFT_KEY); setForm(initialForm); setDraftRestored(false); }}
+                  onClick={() => {
+                    if (editing) {
+                      localStorage.removeItem(editDraftKey(editing.id));
+                      loadEditForm(editing);
+                    } else {
+                      localStorage.removeItem(DRAFT_KEY);
+                      setForm(initialForm);
+                    }
+                    setDraftRestored(false);
+                  }}
                 >
                   Discard draft
                 </button>
