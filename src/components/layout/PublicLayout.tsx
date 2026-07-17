@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
@@ -7,8 +6,7 @@ import BackToTop from "./BackToTop";
 import AnnouncementBanner from "./AnnouncementBanner";
 import SkipLinks from "@/components/SkipLinks";
 import ScrollToTop from "@/components/ScrollToTop";
-
-const ChatBot = lazy(() => import("@/components/ChatBot"));
+import ChatBot from "@/components/ChatBot";
 
 export default function PublicLayout() {
   const location = useLocation();
@@ -34,9 +32,7 @@ export default function PublicLayout() {
       </main>
       <Footer />
       <BackToTop />
-      <Suspense fallback={null}>
-        <ChatBot />
-      </Suspense>
+      <ChatBot />
     </div>
   );
 }

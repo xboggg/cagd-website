@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, RotateCcw, Bot, Minimize2 } from "lucide-react";
+import { X, Send, RotateCcw, Bot, Sparkles, MessageSquare } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -114,7 +114,6 @@ const STATIC_FAQS: FAQItem[] = [
   },
 ];
 
-// Common question words that are meaningless for topic matching
 const STOP_WORDS = new Set([
   "where", "what", "when", "which", "who", "whom", "whose", "why",
   "how", "does", "will", "can", "could", "would", "should", "shall",
@@ -133,14 +132,9 @@ function scoreMatch(faqQuestion: string, keywords: string[]): number {
 
 async function findFaqAnswer(query: string): Promise<string | null> {
   const q = query.toLowerCase().trim();
-  // Extract meaningful keywords only (length > 3, not a stop word)
   const keywords = q.split(/\s+/).filter((w) => w.length > 3 && !STOP_WORDS.has(w));
-
-  // Exact phrase match wins outright
   const exactMatch = STATIC_FAQS.find((f) => f.question.toLowerCase().includes(q));
   if (exactMatch) return exactMatch.answer;
-
-  // Score all FAQs by keyword overlap — pick the best scoring one
   if (keywords.length > 0) {
     let best: FAQItem | null = null;
     let bestScore = 0;
@@ -150,8 +144,6 @@ async function findFaqAnswer(query: string): Promise<string | null> {
     }
     if (best && bestScore >= 1) return best.answer;
   }
-
-  // Then check DB FAQs (stored in cagd_site_settings)
   try {
     const { data } = await supabase
       .from("cagd_site_settings")
@@ -214,6 +206,26 @@ export default function ChatBot() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
 
+  // Callout bubble — shown after 2s, dismissible, remembered in localStorage
+  const [calloutVisible, setCalloutVisible] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("cagd_chatbot_callout_v1") === "1") return;
+    } catch { /* ignore */ }
+    const t = setTimeout(() => setCalloutVisible(true), 2200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const dismissCallout = () => {
+    setCalloutVisible(false);
+    try { localStorage.setItem("cagd_chatbot_callout_v1", "1"); } catch { /* ignore */ }
+  };
+
+  const openChat = () => {
+    dismissCallout();
+    setOpen(true);
+  };
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -233,7 +245,6 @@ export default function ChatBot() {
     setLoading(true);
     setError(false);
 
-    // FAQ-first: check local knowledge base before hitting the AI Worker
     const faqAnswer = await findFaqAnswer(text.trim());
     if (faqAnswer) {
       setMessages((prev) => [...prev, { role: "assistant", content: faqAnswer }]);
@@ -241,7 +252,6 @@ export default function ChatBot() {
       return;
     }
 
-    // Build history (last 6 messages, exclude welcome)
     const history = [...messages, userMsg]
       .filter((m) => m !== WELCOME_MESSAGE)
       .slice(-6)
@@ -282,40 +292,90 @@ export default function ChatBot() {
   };
 
   const showSuggestions = messages.length <= 1;
-
-  // Chat window dimensions — compact on mobile, full panel on desktop
   const chatWidth = isMobile ? "min(360px, calc(100vw - 24px))" : "400px";
   const chatHeight = isMobile ? "min(520px, calc(100vh - 120px))" : "min(600px, calc(100vh - 120px))";
 
   return (
     <>
-      {/* Floating Chat Button */}
+      {/* ── Floating launcher — visible when chat is closed ── */}
       <AnimatePresence>
         {!open && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-6 z-[45] flex items-center gap-2 bg-gradient-to-r from-primary to-primary/85 text-white shadow-xl rounded-full pl-3.5 pr-4 py-2.5 hover:shadow-2xl transition-shadow"
-            aria-label={t("chatbot.openChat")}
-          >
-            <span className="relative flex items-center justify-center h-8 w-8">
-              <span className="absolute inset-0 rounded-full bg-white/20 animate-ping" />
-              <Bot className="h-5 w-5 relative z-10" />
-            </span>
-            <span className="font-heading font-semibold text-sm leading-tight">{t("chatbot.askAI")}</span>
-          </motion.button>
+          <div className="fixed bottom-6 right-5 z-[45] flex flex-col items-end gap-3">
+
+            {/* Callout bubble */}
+            <AnimatePresence>
+              {calloutVisible && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                  className="relative bg-background border border-border rounded-2xl shadow-xl px-4 py-3 max-w-[240px] mr-1"
+                >
+                  {/* Close */}
+                  <button
+                    onClick={dismissCallout}
+                    className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+
+                  <div className="flex items-start gap-2.5 pr-4">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-heading font-semibold text-foreground leading-snug">
+                        Have a question about CAGD?
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                        Our AI assistant can help — payslips, GIFMIS, pensions & more.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Triangle tail pointing down-right */}
+                  <div className="absolute -bottom-2 right-6 w-0 h-0"
+                    style={{
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
+                      borderTop: "8px solid var(--border, #e5e7eb)",
+                    }}
+                  />
+                  <div className="absolute -bottom-[7px] right-[25px] w-0 h-0"
+                    style={{
+                      borderLeft: "7px solid transparent",
+                      borderRight: "7px solid transparent",
+                      borderTop: "7px solid var(--background, #fff)",
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Launcher button — compact circle */}
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={openChat}
+              className="relative w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center hover:shadow-primary/50 hover:shadow-xl transition-shadow"
+              aria-label={t("chatbot.openChat")}
+            >
+              <Bot className="w-6 h-6 relative z-10" />
+              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25" />
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Chat Popup — fixed position, compact, works on all screen sizes */}
+      {/* ── Chat window ── */}
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop on mobile only */}
             {isMobile && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -332,26 +392,26 @@ export default function ChatBot() {
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               style={{ width: chatWidth, height: chatHeight }}
-              className="fixed bottom-6 right-6 z-[60] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-border bg-background"
+              className="fixed bottom-6 right-5 z-[60] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-border bg-background"
             >
               {/* Header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-primary/5 shrink-0">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shrink-0">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-primary shrink-0">
+                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center shadow-md shrink-0">
                   <Bot className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-heading font-bold text-foreground leading-tight">{t("chatbot.title")}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                  <p className="text-sm font-heading font-bold text-white leading-tight">{t("chatbot.title")}</p>
+                  <p className="text-xs text-white/60 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
                     {t("chatbot.status")}
                   </p>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center transition-colors shrink-0"
+                  className="h-7 w-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
                   aria-label={t("chatbot.closeChat")}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 text-white" />
                 </button>
               </div>
 
@@ -359,10 +419,15 @@ export default function ChatBot() {
               <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && (
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mr-2 mt-1">
+                        <MessageSquare className="w-3 h-3 text-primary" />
+                      </div>
+                    )}
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                      className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          ? "bg-primary text-white rounded-br-md"
                           : "bg-muted text-foreground rounded-bl-md"
                       }`}
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatMessage(msg.content)) }}
@@ -371,7 +436,10 @@ export default function ChatBot() {
                 ))}
 
                 {loading && (
-                  <div className="flex justify-start">
+                  <div className="flex justify-start items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-3 h-3 text-primary" />
+                    </div>
                     <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
                       <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -398,7 +466,7 @@ export default function ChatBot() {
                     <button
                       key={s}
                       onClick={() => sendMessage(s)}
-                      className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                      className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors"
                     >
                       {s}
                     </button>

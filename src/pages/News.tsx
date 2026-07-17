@@ -75,7 +75,7 @@ export default function News() {
       <section
         className="relative py-16 md:py-24 text-white"
         style={{
-          backgroundImage: `url('/images/hero/news-hero.webp')`,
+          backgroundImage: `url('/images/hero/hero-1.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

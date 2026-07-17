@@ -107,6 +107,63 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
   );
 }
 
+function MobileSlider({ children, className = "", itemCount }: {
+  children: React.ReactNode;
+  className?: string;
+  itemCount: number;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [idx, setIdx] = useState(0);
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -el.clientWidth : el.clientWidth, behavior: "smooth" });
+  };
+
+  return (
+    <>
+      <div
+        ref={scrollRef}
+        onScroll={() => {
+          const el = scrollRef.current;
+          if (el) setIdx(Math.round(el.scrollLeft / el.clientWidth));
+        }}
+        className={className}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+      >
+        {children}
+      </div>
+      <div className="flex md:hidden items-center justify-center gap-3 mt-5">
+        <button
+          onClick={() => scroll("left")}
+          disabled={idx === 0}
+          className="w-9 h-9 rounded-full border border-border bg-background shadow-sm flex items-center justify-center disabled:opacity-30 transition-opacity"
+          aria-label="Previous"
+        >
+          <ChevronLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <div className="flex gap-1.5 items-center">
+          {Array.from({ length: itemCount }).map((_, i) => (
+            <span
+              key={i}
+              className={`rounded-full transition-all duration-300 ${i === idx ? "w-5 h-2 bg-primary" : "w-2 h-2 bg-muted-foreground/30"}`}
+            />
+          ))}
+        </div>
+        <button
+          onClick={() => scroll("right")}
+          disabled={idx >= itemCount - 1}
+          className="w-9 h-9 rounded-full border border-border bg-background shadow-sm flex items-center justify-center disabled:opacity-30 transition-opacity"
+          aria-label="Next"
+        >
+          <ChevronRight className="w-4 h-4 text-foreground" />
+        </button>
+      </div>
+    </>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MAIN HOMEPAGE
    ═══════════════════════════════════════════════════════════════════ */
@@ -215,6 +272,19 @@ export default function HomePage() {
     setActiveSlide(i);
     setSlideKey((k) => k + 1);
   }, []);
+
+  /* Hero touch-swipe */
+  const heroSwipeX = useRef<number | null>(null);
+  const onHeroPointerDown = (e: React.PointerEvent) => { heroSwipeX.current = e.clientX; };
+  const onHeroPointerUp = (e: React.PointerEvent) => {
+    if (heroSwipeX.current === null) return;
+    const delta = e.clientX - heroSwipeX.current;
+    heroSwipeX.current = null;
+    if (Math.abs(delta) < 50) return;
+    goToSlide(delta < 0
+      ? (activeSlide + 1) % slides.length
+      : (activeSlide - 1 + slides.length) % slides.length);
+  };
 
   /* Parallax refs */
   const countersRef = useRef<HTMLElement>(null);
@@ -326,8 +396,10 @@ export default function HomePage() {
 
       {/* ═══ 1 · HERO SLIDER ═══════════════════════════════════════ */}
       <section
-        className="relative min-h-[100svh] overflow-hidden bg-accent"
+        className="relative min-h-[100svh] overflow-hidden bg-accent touch-pan-y"
         style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        onPointerDown={onHeroPointerDown}
+        onPointerUp={onHeroPointerUp}
       >
         {/* Background images with Ken Burns */}
         <AnimatePresence initial={false} mode="sync">
@@ -398,15 +470,15 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.1, duration: 0.5 }}
-                  className="mt-8 flex flex-wrap gap-4"
+                  className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4"
                 >
                   <Link to={slide.cta.link}>
-                    <Button className="bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-8 py-3 h-auto font-heading font-semibold text-base shadow-lg shadow-cta/30">
+                    <Button className="w-full sm:w-auto bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-8 py-3 h-auto font-heading font-semibold text-base shadow-lg shadow-cta/30">
                       {slide.cta.label} <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                   <Link to="/contact">
-                    <Button className="rounded-full px-8 py-3 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading backdrop-blur-sm">
+                    <Button className="w-full sm:w-auto rounded-full px-8 py-3 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading backdrop-blur-sm">
                       {t("footer.contactUs")}
                     </Button>
                   </Link>
@@ -475,9 +547,6 @@ export default function HomePage() {
         <div className="absolute bottom-32 right-20 w-56 h-56 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
       </section>
 
-      {/* ═══ 2 · PARTNERS MARQUEE ══════════════════════════════════ */}
-      <PartnersCarousel />
-
       {/* ═══ 3 · ABOUT CAGD ════════════════════════════════════════ */}
       <section className="py-16 md:py-24">
         <div className="container">
@@ -486,26 +555,15 @@ export default function HomePage() {
               <span className="inline-flex items-center gap-2 text-sm font-heading font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-6">
                 <Sparkles className="w-4 h-4" /> {t("home.aboutCAGD")}
               </span>
-              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-6 leading-tight overflow-hidden">
-                {t("home.premierInstitution").split(" ").map((word, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, y: 60, rotateX: -90 }}
-                    whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{
-                      delay: i * 0.1,
-                      duration: 0.7,
-                      type: "spring",
-                      stiffness: 100,
-                      damping: 12,
-                    }}
-                    className="inline-block mr-[0.3em]"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </h2>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-3 leading-tight"
+              >
+                {t("home.premierInstitution")}
+              </motion.h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
                 {t("home.aboutDesc1")}
               </p>
@@ -600,9 +658,9 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-4">{t("coreFunctions.title")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">{t("home.mandateIntro")}</p>
           </FadeInSection>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MobileSlider itemCount={coreFunctions.length} className="flex overflow-x-auto snap-x snap-mandatory scroll-pl-4 gap-4 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4 md:gap-6">
             {coreFunctions.map((fn, i) => (
-              <FadeInSection key={fn.title} delay={i * 0.08}>
+              <FadeInSection key={fn.title} delay={i * 0.08} className="snap-start flex-shrink-0 w-[calc(100vw-2rem)] md:w-auto">
                 <Tilt3DCard className="h-full">
                   <div className="bg-card border border-border rounded-2xl p-6 h-full hover:shadow-xl transition-shadow duration-300 group">
                     <motion.div
@@ -623,7 +681,7 @@ export default function HomePage() {
                 </Tilt3DCard>
               </FadeInSection>
             ))}
-          </div>
+          </MobileSlider>
         </div>
       </section>
 
@@ -637,9 +695,9 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-4">{t("ourStructure.sixDivisions")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">{t("ourStructure.description")}</p>
           </FadeInSection>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <MobileSlider itemCount={divisionsData.length} className="flex overflow-x-auto snap-x snap-mandatory scroll-pl-4 gap-4 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-3 md:gap-6">
             {divisionsData.map((div, i) => (
-              <FadeInSection key={div.slug} delay={i * 0.1}>
+              <FadeInSection key={div.slug} delay={i * 0.1} className="snap-start flex-shrink-0 w-[calc(100vw-2rem)] md:w-auto">
                 <Link to={`/divisions/${div.slug}`} className="block group">
                   <motion.div
                     whileHover={{ y: -8, scale: 1.02 }}
@@ -672,7 +730,7 @@ export default function HomePage() {
                 </Link>
               </FadeInSection>
             ))}
-          </div>
+          </MobileSlider>
           <FadeInSection delay={0.6} className="text-center mt-10">
             <Link to="/about/structure">
               <Button variant="outline" className="rounded-full px-8 h-auto py-3 font-heading font-semibold group">
@@ -744,9 +802,9 @@ export default function HomePage() {
             </div>
           </FadeInSection>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <MobileSlider itemCount={latestNews.length > 0 ? latestNews.length : 3} className="flex overflow-x-auto snap-x snap-mandatory scroll-pl-4 gap-4 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:overflow-x-visible md:gap-8">
             {(latestNews.length > 0 ? latestNews : Array(3).fill(null)).map((article, i) => (
-              <FadeInSection key={article?.id || i} delay={i * 0.12}>
+              <FadeInSection key={article?.id || i} delay={i * 0.12} className="snap-start flex-shrink-0 w-[calc(100vw-2rem)] md:w-auto">
                 {article ? (
                   <Link to={`/news/${article.slug || article.id}`} className="block group">
                     <div className="bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
@@ -788,7 +846,7 @@ export default function HomePage() {
                 )}
               </FadeInSection>
             ))}
-          </div>
+          </MobileSlider>
 
           <Link to="/news" className="sm:hidden mt-6 inline-flex items-center gap-1 text-sm font-heading font-semibold text-primary hover:underline">
             {t("home.viewAllNews")} <ArrowRight className="h-4 w-4" />
@@ -802,7 +860,7 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-10">
 
             {/* ── Events Column ── */}
-            <div className="lg:order-2">
+            <div className="order-2 lg:order-2">
               <FadeInSection>
                 <div className="flex items-center justify-between mb-8">
                   <div>
@@ -999,7 +1057,7 @@ export default function HomePage() {
             </div>
 
             {/* ── Digest Column ── */}
-            <div className="lg:order-1">
+            <div className="order-1 lg:order-1">
               <FadeInSection delay={0.15}>
                 <div className="flex items-center justify-between mb-8">
                   <div>
@@ -1121,7 +1179,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 11 · CALL TO ACTION ═══════════════════════════════════ */}
+      {/* ═══ 11 · PARTNERS & AFFILIATES ════════════════════════════ */}
+      <PartnersCarousel />
+
+      {/* ═══ 12 · CALL TO ACTION ═══════════════════════════════════ */}
       <section className="relative py-16 md:py-24 bg-gradient-to-br from-primary via-primary/90 to-accent overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-secondary/10 blur-[100px]" />
