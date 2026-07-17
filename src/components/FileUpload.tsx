@@ -4,18 +4,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Map Supabase bucket names → cPanel folder names
-const BUCKET_TO_FOLDER: Record<string, string> = {
-  "cagd-leadership": "directors",
-  "cagd-gallery": "gallery",
-  "cagd-hero-images": "hero",
-  "cagd-events": "events",
-  "cagd-news-images": "news",
-  "cagd-reports": "reports",
-  "cagd-announcements": "news",
-  "cagd-report-pdfs": "reports",
-};
-
 interface FileUploadProps {
   bucket: string;
   accept?: string;
@@ -40,7 +28,6 @@ export default function FileUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Keep preview synced when currentUrl changes (e.g. after upload updates parent form)
   useEffect(() => {
     setPreview(currentUrl || null);
   }, [currentUrl]);
@@ -49,7 +36,6 @@ export default function FileUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -61,66 +47,52 @@ export default function FileUpload({
 
     setUploading(true);
 
-    const folder = BUCKET_TO_FOLDER[bucket] || "uploads";
+    // Unique filename: sanitized-name-timestamp.ext
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const base = file.name
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .toLowerCase()
+      .slice(0, 50);
+    const path = `${base}-${Date.now()}.${ext}`;
 
-    // Get auth token for the PHP endpoint
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { cacheControl: "3600", upsert: false });
 
-    if (!token) {
-      toast({ title: "Not authenticated", description: "Please log in again.", variant: "destructive" });
+    if (error) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
       setUploading(false);
       return;
     }
 
-    // Upload to cPanel via PHP endpoint
-    const formData = new FormData();
-    formData.append("file", file);
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
-    try {
-      const res = await fetch(`/api/upload.php?folder=${folder}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      const result = await res.json();
-
-      if (!res.ok || result.error) {
-        throw new Error(result.error || "Upload failed");
-      }
-
-      const localUrl = result.url; // e.g. /images/directors/1234-abc.jpg
-
-      // Set preview for images
-      if (file.type.startsWith("image/")) {
-        setPreview(localUrl);
-      } else {
-        setPreview(localUrl.endsWith(".pdf") ? localUrl : null);
-      }
-
-      onUpload(localUrl, file.name, file.size);
-      toast({ title: "Upload complete", description: `${file.name} uploaded successfully.` });
-    } catch (err: any) {
-      toast({
-        title: "Upload failed",
-        description: err.message || "Could not upload file",
-        variant: "destructive",
-      });
+    if (file.type.startsWith("image/")) {
+      setPreview(publicUrl);
+    } else if (file.type === "application/pdf") {
+      setPreview(publicUrl);
     }
 
+    onUpload(publicUrl, file.name, file.size);
+    toast({ title: "Upload complete", description: `${file.name} uploaded successfully.` });
     setUploading(false);
+
+    // Reset input so same file can be re-selected if needed
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleRemove = async () => {
+  const handleRemove = () => {
     setPreview(null);
     onUpload("", "", 0);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const isPdf = preview?.endsWith(".pdf") || accept === "application/pdf";
+  const isPdf = preview && (preview.includes(".pdf") || accept === "application/pdf");
 
   return (
     <div className="space-y-3">
@@ -140,22 +112,13 @@ export default function FileUpload({
               <FileText className="w-8 h-8 text-primary" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">PDF Document</p>
-                <a
-                  href={preview}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
+                <a href={preview} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
                   View file
                 </a>
               </div>
             </div>
           ) : (
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-full h-48 object-cover"
-            />
+            <img src={preview} alt="Preview" className="w-full h-48 object-cover" />
           )}
           <Button
             variant="destructive"

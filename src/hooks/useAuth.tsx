@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   role: string | null;
+  roleLoaded: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -22,14 +23,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [roleLoaded, setRoleLoaded] = useState(false);
 
   const fetchRole = async (userId: string) => {
+    setRoleLoaded(false);
     const { data } = await supabase
       .from("cagd_user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
     setRole(data?.role || null);
+    setRoleLoaded(true);
   };
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchRole(session.user.id);
         } else {
           setRole(null);
+          setRoleLoaded(true);
         }
       }
     );
@@ -93,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         role,
+        roleLoaded,
         signIn,
         signUp,
         signOut,

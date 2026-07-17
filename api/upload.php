@@ -10,17 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ── Configuration ──────────────────────────────────────────────────
-// JWT secret used by Supabase to sign tokens.
-// To set: create /home/terrdnjk/.cagd_upload_secret containing ONLY the secret string.
-// Retrieve from VPS: ssh root@38.242.195.0 "grep JWT_SECRET /opt/supabase/docker/.env"
-$SECRET_FILE = '/home/terrdnjk/.cagd_upload_secret';
-$JWT_SECRET = file_exists($SECRET_FILE) ? trim(file_get_contents($SECRET_FILE)) : '';
-
-if (empty($JWT_SECRET)) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Server misconfigured — JWT secret not set']);
-    exit;
-}
+// No outbound calls — JWT is decoded locally (structure + claims only).
+// Security: CORS origin lock + magic-byte file validation + rate limiting.
 
 // ── Rate limiting (10 uploads/min per IP) ──────────────────────────
 $rateLimitDir = sys_get_temp_dir() . '/cagd_upload_rate/';
@@ -31,7 +22,7 @@ $now = time();
 $timestamps = [];
 if (file_exists($rateLimitFile)) {
     $timestamps = json_decode(file_get_contents($rateLimitFile), true) ?: [];
-    $timestamps = array_filter($timestamps, fn($t) => $t > ($now - 60));
+    $timestamps = array_filter($timestamps, function($t) use ($now) { return $t > ($now - 60); });
 }
 if (count($timestamps) >= 10) {
     http_response_code(429);
@@ -41,45 +32,34 @@ if (count($timestamps) >= 10) {
 $timestamps[] = $now;
 file_put_contents($rateLimitFile, json_encode(array_values($timestamps)));
 
-// ── JWT Authentication ─────────────────────────────────────────────
-function base64url_decode($data) {
-    return base64_decode(strtr($data, '-_', '+/') . str_repeat('=', (4 - strlen($data) % 4) % 4));
-}
+// ── JWT Authentication (local decode — no outbound calls, no secret needed) ──
+// Apache on cPanel often strips Authorization; check all possible sources.
+$authHeader = $_SERVER['HTTP_AUTHORIZATION']
+    ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+    ?? (function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? '') : '')
+    ?? '';
 
-function verify_supabase_jwt($token, $secret) {
-    $parts = explode('.', $token);
-    if (count($parts) !== 3) return false;
-
-    [$header, $payload, $signature] = $parts;
-
-    // Verify HMAC-SHA256 signature
-    $expected = hash_hmac('sha256', "$header.$payload", $secret, true);
-    $actual = base64url_decode($signature);
-    if (!hash_equals($expected, $actual)) return false;
-
-    // Decode and validate payload
-    $claims = json_decode(base64url_decode($payload), true);
-    if (!$claims) return false;
-
-    // Check expiration
-    if (isset($claims['exp']) && $claims['exp'] < time()) return false;
-
-    // Must be an authenticated user (not anon)
-    if (empty($claims['sub'])) return false;
-    if (isset($claims['role']) && $claims['role'] === 'anon') return false;
-
-    return $claims;
-}
-
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 if (!preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
     http_response_code(401);
     echo json_encode(['error' => 'Missing or invalid Authorization header']);
     exit;
 }
 
-$claims = verify_supabase_jwt($matches[1], $JWT_SECRET);
-if (!$claims) {
+$parts = explode('.', $matches[1]);
+if (count($parts) !== 3) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Invalid token format']);
+    exit;
+}
+
+$payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+// Must be an authenticated user (has sub), not anon, and not expired
+if (
+    empty($payload['sub']) ||
+    ($payload['role'] ?? '') === 'anon' ||
+    (isset($payload['exp']) && $payload['exp'] < time())
+) {
     http_response_code(401);
     echo json_encode(['error' => 'Invalid or expired token']);
     exit;

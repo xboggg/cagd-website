@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { translateToTwi, translateHtmlToTwi } from "@/lib/translate";
 
 const CATEGORIES = ["General", "Announcements", "Digest", "Payroll", "IPSAS", "GIFMIS", "Treasury", "Training", "Press Release", "Circular", "Reforms", "Regional", "Events"];
+const DRAFT_KEY = "cagd_news_draft";
 const ITEMS_PER_PAGE = 15;
 
 interface NewsForm {
@@ -63,6 +64,7 @@ export default function NewsManager() {
   const [form, setForm] = useState<NewsForm>(initialForm);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; item: any }>({ open: false, item: null });
   const [saving, setSaving] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [translatingAll, setTranslatingAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,6 +85,16 @@ export default function NewsManager() {
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  // Auto-save new post draft to localStorage
+  useEffect(() => {
+    if (dialogOpen && !editing) {
+      const hasContent = form.title || form.excerpt || form.content;
+      if (hasContent) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+      }
+    }
+  }, [form, dialogOpen, editing]);
 
   // Auto-generate slug from title
   const generateSlug = (title: string) => {
@@ -173,6 +185,8 @@ export default function NewsManager() {
 
     logAudit({ action: editing ? "update" : "create", resourceType: "news", resourceId: editing?.id, resourceTitle: form.title });
     toast({ title: editing ? "Updated" : "Created", description: "Twi translation auto-generated." });
+    if (!editing) localStorage.removeItem(DRAFT_KEY);
+    setDraftRestored(false);
     setDialogOpen(false);
     setEditing(null);
     setForm(initialForm);
@@ -210,7 +224,19 @@ export default function NewsManager() {
 
   const openNew = () => {
     setEditing(null);
-    setForm(initialForm);
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        setForm(JSON.parse(saved));
+        setDraftRestored(true);
+      } catch {
+        setForm(initialForm);
+        setDraftRestored(false);
+      }
+    } else {
+      setForm(initialForm);
+      setDraftRestored(false);
+    }
     setDialogOpen(true);
   };
 
@@ -259,12 +285,23 @@ export default function NewsManager() {
         <Button variant="outline" onClick={handleTranslateAll} disabled={translatingAll}>
             {translatingAll ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Translating...</> : <><Languages className="w-4 h-4 mr-2" /> Translate All to Twi</>}
           </Button>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm(initialForm); } }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); if (editing) setForm(initialForm); } }}>
           <DialogTrigger asChild>
             <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> New Post</Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit Post" : "New Post"}</DialogTitle></DialogHeader>
+            {draftRestored && (
+              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                <span>Draft restored — your unsaved work is back.</span>
+                <button
+                  className="text-xs underline ml-4 shrink-0"
+                  onClick={() => { localStorage.removeItem(DRAFT_KEY); setForm(initialForm); setDraftRestored(false); }}
+                >
+                  Discard draft
+                </button>
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <Label>Title *</Label>
@@ -329,24 +366,22 @@ export default function NewsManager() {
                 </div>
               </div>
 
-              {(form.status === "scheduled" || form.status === "published") && (
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    {form.status === "scheduled" ? "Schedule Date & Time" : "Publish Date"}
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    value={form.publish_date}
-                    onChange={(e) => setForm({ ...form, publish_date: e.target.value })}
-                  />
-                  {form.status === "scheduled" && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Article will be automatically published at this date/time.
-                    </p>
-                  )}
-                </div>
-              )}
+              <div>
+                <Label className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4" />
+                  {form.status === "scheduled" ? "Schedule Date & Time" : "Publish Date"}
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={form.publish_date}
+                  onChange={(e) => setForm({ ...form, publish_date: e.target.value })}
+                />
+                {form.status === "scheduled" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Article will be automatically published at this date/time.
+                  </p>
+                )}
+              </div>
 
               <div>
                 <Label>Tags</Label>

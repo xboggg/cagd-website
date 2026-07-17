@@ -268,7 +268,7 @@ function MobileNav({
 }
 
 export default function AdminLayout() {
-  const { user, loading, role, isAdmin, isEditor, signOut } = useAuth();
+  const { user, loading, role, roleLoaded, isAdmin, isEditor, signOut } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [changePwOpen, setChangePwOpen] = useState(false);
@@ -280,8 +280,8 @@ export default function AdminLayout() {
     contentRef.current?.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Show spinner while auth is loading OR user exists but role hasn't arrived yet
-  if (loading || (user && !role)) {
+  // Show spinner while auth is loading OR role fetch is still in progress
+  if (loading || (user && !roleLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
