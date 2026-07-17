@@ -3,28 +3,47 @@
 **Site:** cagd.gov.gh  
 **Department:** Controller and Accountant-General's Department, Ghana  
 **Stack:** Vite + React 18 + TypeScript + Tailwind + shadcn/ui + Supabase  
-**Last updated:** 2026-07-17
+**Last updated:** 2026-07-17 (rev 2 — image storage architecture, Imunify360 on :2083, deploy method update)
 
 ---
 
 ## 1. Architecture Overview
 
 ```
-Browser (user)
+Browser (admin — uploading image)
     │
-    ▼
-cagd.gov.gh  ←── NITA server (197.253.67.104) — Apache/cPanel
-    │                 • Hosts the built React SPA (dist/)
-    │                 • Serves static images (/images/news/, etc.)
-    │                 • PHP endpoints: upload.php, contact-email.php
-    │
+    │  NEW (from 2026-07-17): FileUpload.tsx uploads DIRECTLY to Supabase
+    │  — NITA server is NOT involved in new image uploads at all
     ▼
 db.techtrendi.com  ←── Contabo server 38 (38.242.195.0)
                           • Self-hosted Supabase (Docker)
                           • Kong API gateway on port 8090 internally
                           • nginx proxies db.techtrendi.com → Kong
                           • All database + auth + storage
+                          • Supabase storage buckets (cagd-news-images, etc.)
+
+Browser (public visitor)
+    │
+    ▼
+cagd.gov.gh  ←── NITA server (197.253.67.104) — Apache/cPanel
+    │                 • Hosts the built React SPA (dist/)
+    │                 • Serves OLD static images (/images/news/, etc.)
+    │                   (images uploaded before 2026-07-17 live here)
+    │                 • PHP endpoints: contact-email.php
+    │                 • upload.php still present but no longer used
+    │
+    ▼  (for data + NEW image URLs)
+db.techtrendi.com  ←── Contabo server 38 (38.242.195.0)
 ```
+
+### Image Storage — Two Eras (important)
+
+| Era | Where images live | URL format |
+|---|---|---|
+| **Before 2026-07-17** | NITA server `/images/` folder | `/images/news/filename.webp` (relative path) |
+| **After 2026-07-17** | Supabase storage on srv-38 | `https://db.techtrendi.com/storage/v1/object/public/cagd-news-images/file.webp` |
+
+**Both eras work simultaneously and permanently.** Old articles still load their images from the NITA server fine — nothing was migrated or broken. New articles upload images directly to Supabase and use full Supabase URLs. The frontend handles both URL formats automatically.
 
 ### Key servers
 
@@ -63,9 +82,29 @@ The NITA server has several restrictions that affect how you can deploy:
 | FTP (port 21) | BLOCKED | Port refused |
 | SSH/SFTP | BLOCKED | ISP/corporate network blocks outbound SSH |
 | cPanel multipart upload | BLOCKED | openresty WAF returns 415 |
-| **cPanel API v2 `savefile`** | **WORKS** | URL-encoded POST to port 2083 |
+| cPanel API v2 `savefile` (PowerShell) | ⚠️ INTERMITTENT | Imunify360 intercepts it when IP is flagged — returns bot-challenge HTML instead of JSON (see Section 4) |
+| **Browser — cPanel File Manager** | **ALWAYS WORKS** | Real browser passes Imunify360 JS challenge automatically |
 
-### Working Deploy — PowerShell Script
+### ⚠️ Imunify360 Now Blocks Port 2083 Too (discovered 2026-07-17)
+
+Imunify360 on the NITA server is now intercepting automated POST requests even to the cPanel API on port `:2083`. When triggered, the API returns an HTML bot-challenge page instead of a JSON response:
+
+```
+"One moment, please... Please wait while your request is being verified..."
+```
+
+This means the PowerShell `savefile` method may fail even though it previously worked (it worked on 2026-07-03 during the initial site upload). A real browser passes this JS challenge automatically; PowerShell cannot.
+
+**When this happens, the only working deploy method is the browser-based cPanel File Manager.**
+
+### Working Deploy — cPanel File Manager (Browser)
+
+1. Open `https://197.253.67.104:2083/` in a browser
+2. Log in → File Manager → navigate to `public_html/assets/`
+3. Upload the JS and CSS bundle files
+4. Navigate to `public_html/` root → upload `index.html` LAST
+
+### PowerShell Deploy — Use When IP is Not Flagged
 
 Credentials are in `cagd-website/.env.deploy` (git-ignored):
 ```
@@ -76,7 +115,7 @@ CPANEL_TOKEN=<token>
 REMOTE_ROOT=public_html
 ```
 
-Deploy command:
+Deploy command (may be blocked by Imunify360 — try browser first):
 ```powershell
 $AUTH = "cpanel cagdgov:<TOKEN>"
 $BASE = "https://197.253.67.104:2083/json-api/cpanel"
@@ -94,6 +133,8 @@ Invoke-RestMethod -Uri $BASE -Method Post -Body $body `
     -Headers @{Authorization=$AUTH} -ContentType "application/x-www-form-urlencoded" `
     -SkipCertificateCheck -TimeoutSec 300
 ```
+
+**If the response is an HTML page starting with `<!DOCTYPE html>` instead of JSON → Imunify360 has flagged your IP. Switch to browser File Manager.**
 
 ### Deploy Order (ALWAYS follow this)
 
@@ -118,23 +159,41 @@ Invoke-RestMethod -Uri $BASE -Method Post -Body $body `
 
 The NITA server runs Imunify360 which aggressively blocks automated requests.
 
-### Triggers that get our IP banned
+### Scope of Imunify360 Protection (updated 2026-07-17)
+
+Imunify360 protects **both** the website port AND the cPanel admin port:
+
+| Port | What it protects | Effect on us |
+|---|---|---|
+| 80 / 443 | Website (Apache) | Blocks file upload POST, bans IPs |
+| **2083** | **cPanel API** | **Also blocked** — even the `savefile` API gets the JS challenge |
+
+This means there is **no fully automated deploy path** from a flagged IP. A real browser is required.
+
+### Triggers that get our IP flagged
 
 - Sending PHP code (`<?php`) in POST body content
-- Sending binary file content (images, PDFs) via API
-- Multiple rapid POST requests
+- Sending binary or large file content via POST
+- Multiple rapid POST requests to the server
+- Any automated HTTP client (PowerShell, curl) making POST requests to port 2083
 
-### Symptoms of being banned
+### Symptoms of being flagged/banned
 
-- cPanel API returns HTML page: `"One moment, please... Please wait while your request is being verified"`
-- Even GET requests start returning the challenge page
+- Any POST to port 2083 returns HTML: `"One moment, please... Please wait while your request is being verified..."`
+- The HTML contains obfuscated JavaScript that real browsers execute to pass the challenge
+- Automated scripts (PowerShell, curl) cannot execute JavaScript → permanently fail
 - Bans are **temporary** — usually clears within a few hours
+- Diagnosis: if `Invoke-RestMethod` result starts with `<!DOCTYPE html>` instead of JSON → you are flagged
 
-### Workarounds
+### Workarounds (in order of preference)
 
-1. **Wait** for the ban to expire (few hours)
-2. **Upload manually** via browser-based cPanel File Manager at `https://197.253.67.104:2083/`
-3. **Use Supabase storage** instead of the NITA server for images (see Section 7)
+1. **Use browser cPanel File Manager** at `https://197.253.67.104:2083/` — real browsers always pass the challenge
+2. **Wait** a few hours for the IP flag to expire, then retry PowerShell
+3. **For image uploads specifically** — use Supabase storage (Section 7) which bypasses NITA entirely, permanently
+
+### Long-term solution
+
+The permanent fix for image uploads is already in place (FileUpload.tsx rewritten to use Supabase storage directly — no POST to NITA server needed). For code deploys, the File Manager is the only reliable method until NITA whitelists our IP or disables Imunify360 challenges on port 2083.
 
 ---
 
@@ -206,16 +265,41 @@ Managed in `cagd_user_roles` table. Two roles:
 
 ## 7. Image Uploads
 
-### How Images Work
+### How Images Work — Two Storage Locations
 
-Images can be stored in **two places**:
+Images for the CAGD site live in two places depending on when they were uploaded:
 
-| Location | Path format | When to use |
+| Location | Path format | Status |
 |---|---|---|
-| NITA server | `/images/news/filename.webp` | Uploaded via admin upload.php |
-| Supabase storage | `https://db.techtrendi.com/storage/v1/object/public/cagd-news-images/file.webp` | When NITA upload fails |
+| **NITA server** `/images/` folder | `/images/news/filename.webp` (relative path) | Old images only — articles published before 2026-07-17. Still served fine, nothing to migrate. |
+| **Supabase storage** on srv-38 | `https://db.techtrendi.com/storage/v1/object/public/cagd-news-images/file.webp` (full URL) | All new uploads from 2026-07-17 onwards. The professional standard. |
 
-The `resolveImagePath()` function in the frontend handles both formats automatically.
+**Both formats work permanently side by side.** The database stores whatever URL format was used when the article was saved. The frontend renders whichever URL is in the `featured_image` field — relative path (NITA) or full URL (Supabase).
+
+### Why Supabase Storage Is the Better Professional Choice
+
+1. **Backed up daily** — part of the Supabase DB backup on srv-38 (runs every night)
+2. **Never depends on NITA** — bypasses Imunify360 WAF entirely, no 500 errors ever
+3. **Clean permanent URLs** — accessible from any device, no server path fragility
+4. **Direct browser upload** — admin uploads straight from browser to Supabase without touching NITA
+5. **Scales independently** — storage can grow without affecting the NITA server at all
+
+### FileUpload.tsx — Permanent Fix (2026-07-17)
+
+`src/components/FileUpload.tsx` was completely rewritten to upload directly to Supabase storage using the Supabase JS client (`supabase.storage.from(bucket).upload()`). This eliminates ALL dependency on `upload.php` for new uploads.
+
+**How it works:**
+1. Admin picks a file in the browser
+2. Browser calls `supabase.storage.from('cagd-news-images').upload(path, file)` directly
+3. Supabase returns a public URL
+4. URL is stored in the `featured_image` database field
+5. NITA server is never involved
+
+**upload.php is now retired for new uploads.** It still exists on the server but is no longer called by the frontend.
+
+### upload.php — Historical Issues & Solutions (archive)
+
+These issues were fixed but upload.php is now bypassed entirely. Documented for reference.
 
 ### upload.php — Known Issues & Solutions
 
@@ -369,22 +453,27 @@ docker ps | grep supabase
 ### Deploy a code change
 
 1. Make change locally, test on `http://localhost:5173`
-2. `npm run build`
-3. Note the new JS hash in `dist/assets/index-XXXXX.js`
-4. Upload via cPanel File Manager (if API blocked) or PowerShell savefile API:
+2. `npm run build` in `cagd-website/`
+3. Note the new hashes in `dist/index.html` (open the file, check the `src=` and `href=` on the last two lines of `<head>`)
+4. Upload via cPanel File Manager (browser — most reliable):
    - `dist/assets/index-XXXXX.js` → `public_html/assets/`
-   - `dist/index.html` → `public_html/`
+   - `dist/assets/index-XXXXX.css` → `public_html/assets/` (only if CSS hash changed)
+   - `dist/index.html` → `public_html/` ← **ALWAYS LAST**
+5. Try PowerShell savefile API only if IP is not flagged by Imunify360 (see Section 3 + 4)
+6. Verify deploy: open `https://cagd.gov.gh/` in browser → View Source → check JS filename matches new hash
 
 ### Add a news article with image
 
 1. Go to `https://cagd.gov.gh/admin/news` → New Post
-2. Fill title, excerpt, content, tags
-3. If image upload fails via admin panel:
-   - Optimise image with ffmpeg → WebP under 100KB
-   - SCP to server 38, upload to `cagd-news-images` Supabase bucket
-   - Update DB `featured_image` field to Supabase storage URL
-4. Set category to "Press Release" (or appropriate)
-5. Set status to "Published" and save
+2. Fill title, excerpt, content, tags, date
+3. Click the image upload area — it uploads directly to Supabase storage (no NITA involvement)
+4. Optimise image first if needed: `ffmpeg -i input.png -vf scale=1200:-1 -c:v libwebp -quality 85 output.webp` (target < 100KB)
+5. Set category to "Press Release" (or appropriate)
+6. Set status to "Published" and save
+
+**If Supabase upload fails** (rare — check browser console for error):
+- SCP to server 38, upload to `cagd-news-images` bucket manually (see Section 7 "Uploading Images to Supabase Storage via SSH")
+- Update DB `featured_image` field to Supabase storage URL
 
 ### Reset a user's password
 
@@ -411,7 +500,7 @@ cagd-website/
 │   ├── hooks/useAuth.tsx          # Auth + roleLoaded fix
 │   ├── components/admin/
 │   │   └── AdminLayout.tsx        # Admin shell + spinner fix
-│   ├── components/FileUpload.tsx  # Posts to /api/upload.php
+│   ├── components/FileUpload.tsx  # Uploads DIRECTLY to Supabase storage (upload.php retired)
 │   ├── pages/admin/
 │   │   └── NewsManager.tsx        # News CRUD + draft persistence
 │   └── integrations/supabase/
