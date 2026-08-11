@@ -7,14 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Download, ExternalLink, FileText, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Download, ExternalLink, FileText, ChevronLeft, ChevronRight, Search, Image as ImageIcon, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useTableSort, SortableHead } from "@/components/admin/SortableTableHead";
 import { logAudit } from "@/lib/auditLog";
 
-const CATEGORIES = ["General", "Annual Reports", "Financial Statements", "Payroll Reports", "Audit Reports", "IPSAS Reports", "Budget Reports", "Treasury Reports", "Circulars"];
+const CATEGORIES = ["General", "Annual Reports", "Financial Statements", "Payroll Reports", "Audit Reports", "IPSAS", "IPSAS Reports", "Budget Reports", "Treasury Reports", "Chart of Accounts", "Quarterly Reports", "Conference", "Circulars"];
 const ITEMS_PER_PAGE = 15;
 
 interface ReportForm {
@@ -24,6 +25,8 @@ interface ReportForm {
   file_size: number;
   category: string;
   year: string;
+  cover_image: string;
+  featured: boolean;
 }
 
 const initialForm: ReportForm = {
@@ -33,6 +36,8 @@ const initialForm: ReportForm = {
   file_size: 0,
   category: "General",
   year: new Date().getFullYear().toString(),
+  cover_image: "",
+  featured: false,
 };
 
 export default function ReportsManager() {
@@ -79,6 +84,8 @@ export default function ReportsManager() {
       category: form.category,
       year: parseInt(form.year),
       publish_date: new Date().toISOString(),
+      cover_image: form.cover_image || null,
+      featured: form.featured,
     };
 
     let error;
@@ -119,12 +126,18 @@ export default function ReportsManager() {
       file_size: item.file_size || 0,
       category: item.category,
       year: item.year?.toString() || new Date().getFullYear().toString(),
+      cover_image: item.cover_image || "",
+      featured: item.featured || false,
     });
     setDialogOpen(true);
   };
 
-  const handleFileUpload = (url: string, fileName: string, fileSize: number) => {
-    setForm({ ...form, file_url: url, file_size: fileSize });
+  const handleFileUpload = (url: string, _fileName: string, fileSize: number) => {
+    setForm((f) => ({ ...f, file_url: url, file_size: fileSize }));
+  };
+
+  const handleCoverUpload = (url: string) => {
+    setForm((f) => ({ ...f, cover_image: url }));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -150,13 +163,13 @@ export default function ReportsManager() {
               className="pl-9 w-48 sm:w-64"
             />
           </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm(initialForm); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm(initialForm); } }}>
           <DialogTrigger asChild>
             <Button onClick={() => { setEditing(null); setForm(initialForm); }}>
               <Plus className="w-4 h-4 mr-2" /> New Report
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit Report" : "New Report"}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>
@@ -208,6 +221,38 @@ export default function ReportsManager() {
                   onUpload={handleFileUpload}
                   currentUrl={form.file_url}
                   label="Upload PDF Report"
+                  id="report-pdf"
+                />
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Cover Image
+                  <span className="text-[11px] text-muted-foreground font-normal">(optional — portrait recommended, e.g. report cover page)</span>
+                </Label>
+                <FileUpload
+                  bucket="cagd-images"
+                  accept="image/*"
+                  maxSize={5}
+                  onUpload={handleCoverUpload}
+                  currentUrl={form.cover_image}
+                  label="Upload Cover Image"
+                  id="report-cover"
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-amber-500" />
+                    Feature in carousel
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Pin to the top carousel (max 3 reports shown)</p>
+                </div>
+                <Switch
+                  checked={form.featured}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, featured: v }))}
                 />
               </div>
 
@@ -245,6 +290,7 @@ export default function ReportsManager() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">Cover</TableHead>
                   <SortableHead column="title" label="Title" sort={sort} onSort={toggleSort} />
                   <SortableHead column="category" label="Category" sort={sort} onSort={toggleSort} />
                   <SortableHead column="year" label="Year" sort={sort} onSort={toggleSort} />
@@ -256,6 +302,24 @@ export default function ReportsManager() {
               <TableBody>
                 {paginated.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="relative w-8">
+                        {item.cover_image ? (
+                          <img
+                            src={item.cover_image}
+                            alt=""
+                            className="w-8 h-11 object-cover rounded border border-border"
+                          />
+                        ) : (
+                          <div className="w-8 h-11 rounded border border-dashed border-border flex items-center justify-center">
+                            <FileText className="w-3.5 h-3.5 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        {item.featured && (
+                          <Star className="w-3 h-3 text-amber-500 fill-amber-500 absolute -top-1 -right-1" />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div>
                         {item.title}
@@ -278,12 +342,7 @@ export default function ReportsManager() {
                     <TableCell>
                       <div className="flex gap-1">
                         {item.file_url && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            asChild
-                            title="View file"
-                          >
+                          <Button size="icon" variant="ghost" asChild title="View file">
                             <a href={item.file_url} target="_blank" rel="noreferrer">
                               <ExternalLink className="w-4 h-4" />
                             </a>

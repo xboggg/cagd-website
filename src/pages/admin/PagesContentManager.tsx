@@ -407,7 +407,7 @@ export default function PagesContentManager() {
       </Tabs>
 
       {/* ── Shared Dialog ── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog modal={false} open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>

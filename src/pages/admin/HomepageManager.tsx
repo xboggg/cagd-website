@@ -131,7 +131,7 @@ function JsonArrayEditor<T extends Record<string, string>>({
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog modal={false} open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingIndex !== null ? "Edit" : "Add"} {title.replace(/s$/, "")}</DialogTitle></DialogHeader>
           <div className="space-y-3">

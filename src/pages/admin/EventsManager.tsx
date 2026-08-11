@@ -406,7 +406,7 @@ export default function EventsManager() {
               className="pl-9 w-48 sm:w-64"
             />
           </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm(initialForm); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm(initialForm); } }}>
           <DialogTrigger asChild>
             <Button onClick={() => { setEditing(null); setForm(initialForm); }}>
               <Plus className="w-4 h-4 mr-2" /> New Event

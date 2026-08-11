@@ -322,7 +322,7 @@ export default function Events() {
       <section
         className="relative py-14 md:py-20 text-white"
         style={{
-          backgroundImage: `url('/images/hero/news-hero.webp')`,
+          backgroundImage: `url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

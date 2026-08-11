@@ -112,7 +112,7 @@ export default function UserManagement() {
             Only <strong>{CORPORATE_DOMAIN}</strong> emails can be added
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setForm({ email: "", password: "", role: "editor" }); }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setForm({ email: "", password: "", role: "editor" }); }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add User</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add New User</DialogTitle></DialogHeader>

@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 .vercel
 
+# Internal docs (contains server IPs, infrastructure details — never commit)
+CAGD_WEBSITE_DOCS_INTERNAL.md
+
 # Sensitive / deployment scripts
 winscp_script.txt
 migrate.php

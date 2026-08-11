@@ -139,7 +139,7 @@ export default function CoreValues() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/images/about/core-values-img.jpg"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

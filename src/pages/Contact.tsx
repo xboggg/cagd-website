@@ -341,7 +341,7 @@ export default function Contact() {
         >
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('/images/contact/contact-hero.webp')` }}
+            style={{ backgroundImage: `url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/contact-hero.png')` }}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/85 to-accent/80" />
         </motion.div>

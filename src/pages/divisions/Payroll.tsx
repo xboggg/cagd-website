@@ -129,7 +129,7 @@ export default function Payroll() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/images/divisions/payroll-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/payroll-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

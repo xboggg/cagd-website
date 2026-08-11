@@ -469,7 +469,7 @@ export default function GalleryManager() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-heading font-bold">Gallery Manager</h1>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ title: "", cover_image: "", album_date: "", parent_id: "" }); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ title: "", cover_image: "", album_date: "", parent_id: "" }); } }}>
           <DialogTrigger asChild>
             <Button onClick={() => { setEditing(null); setForm({ title: "", cover_image: "", album_date: "", parent_id: "" }); }}>
               <Plus className="w-4 h-4 mr-2" /> New Album

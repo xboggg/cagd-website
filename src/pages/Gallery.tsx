@@ -90,7 +90,7 @@ export default function Gallery() {
       <section
         className="relative py-16 md:py-24 text-white"
         style={{
-          backgroundImage: `url('/images/hero/news-hero.webp')`,
+          backgroundImage: `url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

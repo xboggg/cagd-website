@@ -149,7 +149,7 @@ export default function FMS() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/images/divisions/fms-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/fms-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >
@@ -406,7 +406,7 @@ export default function FMS() {
       >
         {/* gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-secondary to-yellow-500" />
-        <div className="absolute inset-0 bg-[url('/images/divisions/fms-hero.webp')] bg-cover bg-center opacity-10" />
+        <div className="absolute inset-0 bg-[url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/fms-hero.png')] bg-cover bg-center opacity-10" />
 
         <div className="container relative z-10 text-center text-white">
           <motion.div style={{ y: quoteY }}>

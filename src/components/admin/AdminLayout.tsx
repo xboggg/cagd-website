@@ -273,6 +273,8 @@ export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [changePwOpen, setChangePwOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  // Track whether we've ever successfully passed the auth gate — once true, never show spinner again
+  const hasPassedAuth = useRef(false);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -280,8 +282,10 @@ export default function AdminLayout() {
     contentRef.current?.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Show spinner while auth is loading OR role fetch is still in progress
-  if (loading || (user && !roleLoaded)) {
+  const isReady = !loading && (roleLoaded || hasPassedAuth.current);
+
+  // Only show the initial spinner — never re-show it after first successful auth
+  if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -297,6 +301,9 @@ export default function AdminLayout() {
       </div>
     );
   }
+
+  // Mark that we've passed auth — subsequent role re-fetches won't trigger the spinner
+  hasPassedAuth.current = true;
 
   const filteredNav = navItems.filter((item) => {
     if (isEditor) {

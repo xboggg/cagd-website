@@ -146,7 +146,7 @@ export default function Audit() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/images/divisions/audit-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/audit-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

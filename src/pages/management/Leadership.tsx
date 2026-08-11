@@ -345,7 +345,7 @@ export default function Leadership() {
         ref={heroRef}
         className="relative py-20 md:py-28 text-white overflow-hidden"
         style={{
-          backgroundImage: `url('/images/hero/news-hero.webp')`,
+          backgroundImage: `url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',

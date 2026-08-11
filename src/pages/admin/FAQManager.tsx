@@ -112,7 +112,7 @@ export default function FAQManager() {
           <h1 className="text-2xl font-heading font-bold">FAQ Manager</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage frequently asked questions grouped by section</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm({ question: "", answer: "", section: "General" }); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm({ question: "", answer: "", section: "General" }); } }}>
           <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> Add FAQ</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editingIndex !== null ? "Edit FAQ" : "New FAQ"}</DialogTitle></DialogHeader>

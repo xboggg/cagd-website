@@ -28,9 +28,7 @@ export function getNewsField(article: Record<string, any>, field: "title" | "exc
 
 export function resolveImagePath(path: string | null | undefined): string | null {
   if (!path) return null;
-  if (path.startsWith('http')) return path;
-  if (path.startsWith('/images/')) {
-    return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`;
-  }
-  return path;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  // Always return as absolute path from root — BASE_URL can produce // double-slash
+  return path.startsWith('/') ? path : `/${path}`;
 }

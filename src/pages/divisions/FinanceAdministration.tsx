@@ -177,7 +177,7 @@ export default function FinanceAdministration() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/images/divisions/fa-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/fa-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

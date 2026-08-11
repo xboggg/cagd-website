@@ -40,12 +40,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChange handles subsequent auth events (login/logout/token refresh).
     // Do NOT await Supabase calls inside this callback — it causes a deadlock.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchRole(session.user.id);
-        } else {
+          // TOKEN_REFRESHED only refreshes the JWT — role hasn't changed, skip the DB call entirely
+          if (event !== "TOKEN_REFRESHED") {
+            fetchRole(session.user.id);
+          }
+        } else if (event !== "TOKEN_REFRESHED") {
           setRole(null);
           setRoleLoaded(true);
         }

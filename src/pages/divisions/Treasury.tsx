@@ -171,7 +171,7 @@ export default function Treasury() {
       {/*  HERO                                                         */}
       {/* ============================================================ */}
       <ParallaxHero
-        backgroundImage="/images/divisions/treasury-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/treasury-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

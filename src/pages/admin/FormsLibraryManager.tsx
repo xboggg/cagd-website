@@ -79,7 +79,7 @@ export default function FormsLibraryManager() {
           <h1 className="text-2xl font-heading font-bold">Forms Library</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage downloadable forms shown on the public <a href="/resources/forms" target="_blank" className="underline text-primary">/resources/forms</a> page.</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={o => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ ...emptyForm }); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={o => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ ...emptyForm }); } }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Form</Button></DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit Form" : "Add New Form"}</DialogTitle></DialogHeader>

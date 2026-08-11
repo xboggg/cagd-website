@@ -65,7 +65,7 @@ export default function LeadershipManager() {
               className="pl-9 w-48 sm:w-64"
             />
           </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" }); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ name: "", title: "", bio: "", photo: "", display_order: 0, profile_type: "Leadership" }); } }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Profile</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit Profile" : "New Profile"}</DialogTitle></DialogHeader>

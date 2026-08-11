@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Download, FileText, Loader2, ChevronLeft, ChevronRight,
   FileWarning, ArrowUpDown, BarChart3, FolderOpen, TrendingUp,
-  BookOpen, Calculator, Landmark, Award, ScrollText,
+  BookOpen, Calculator, Landmark, Award, ScrollText, Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,14 +48,12 @@ function formatDate(d: string | null) {
 }
 
 /* ── glowy download button ───────────────────────────────────────── */
-function GlowDownloadButton({ fileUrl, reportId }: { fileUrl: string; reportId: string }) {
+function GlowDownloadButton({ fileUrl, reportId, size = "sm" }: { fileUrl: string; reportId: string; size?: "sm" | "lg" }) {
   const { t } = useTranslation();
   const handleDownload = async () => {
-    // fire-and-forget increment
     supabase.rpc("cagd_increment_download", { report_id: reportId }).then();
     const resolvedUrl = fileUrl.startsWith("http") ? fileUrl : fileUrl;
     try {
-      // Fetch as blob to force download even for cross-origin URLs
       const res = await fetch(resolvedUrl);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -67,10 +65,23 @@ function GlowDownloadButton({ fileUrl, reportId }: { fileUrl: string; reportId: 
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      // Fallback: navigate in same tab (avoids blank-tab issues from extensions)
       window.location.href = resolvedUrl;
     }
   };
+
+  if (size === "lg") {
+    return (
+      <motion.button
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={handleDownload}
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_35px_rgba(16,185,129,0.65)] transition-shadow duration-300"
+      >
+        <Download className="w-4 h-4" />
+        Download PDF
+      </motion.button>
+    );
+  }
 
   return (
     <motion.button
@@ -82,6 +93,133 @@ function GlowDownloadButton({ fileUrl, reportId }: { fileUrl: string; reportId: 
       <Download className="w-3.5 h-3.5 group-hover:animate-bounce" />
       <span className="hidden sm:inline">{t("common.download")}</span>
     </motion.button>
+  );
+}
+
+/* ── featured reports carousel ───────────────────────────────────── */
+function FeaturedCarousel({ reports }: { reports: any[] }) {
+  const [idx, setIdx] = useState(0);
+  const total = reports.length;
+
+  const prev = useCallback(() => setIdx((i) => (i - 1 + total) % total), [total]);
+  const next = useCallback(() => setIdx((i) => (i + 1) % total), [total]);
+
+  // Auto-advance every 6 seconds
+  useEffect(() => {
+    if (total <= 1) return;
+    const t = setInterval(next, 6000);
+    return () => clearInterval(t);
+  }, [next, total]);
+
+  const report = reports[idx];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="mb-10 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-accent/5 overflow-hidden shadow-lg relative"
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={report.id}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -40 }}
+          transition={{ duration: 0.35 }}
+          className="flex flex-col sm:flex-row gap-0"
+        >
+          {/* portrait cover */}
+          <div className="shrink-0 sm:w-44 flex items-stretch bg-primary/10">
+            {report.cover_image ? (
+              <img
+                src={report.cover_image}
+                alt={`${report.title} cover`}
+                className="w-full sm:w-44 h-56 sm:h-auto object-cover"
+              />
+            ) : (
+              <div className="w-full sm:w-44 h-56 sm:h-auto flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-primary/20 to-primary/5 p-6">
+                <BookOpen className="w-12 h-12 text-primary/50" />
+                <span className="text-3xl font-bold text-primary/40">{report.year}</span>
+              </div>
+            )}
+          </div>
+
+          {/* content */}
+          <div className="flex-1 p-6 flex flex-col justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                  <Sparkles className="w-3 h-3" />
+                  Featured
+                </span>
+                <Badge variant="secondary" className="text-[10px]">{report.category}</Badge>
+                {report.year && <Badge variant="outline" className="text-[10px]">{report.year}</Badge>}
+              </div>
+              <h2 className="text-lg sm:text-xl font-heading font-bold text-foreground leading-tight mb-2">
+                {report.title}
+              </h2>
+              {report.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  {report.description}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              {report.file_url && (
+                <GlowDownloadButton fileUrl={report.file_url} reportId={report.id} size="lg" />
+              )}
+              <div className="flex flex-col gap-0.5">
+                {report.publish_date && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Published {formatDate(report.publish_date)}
+                  </span>
+                )}
+                {report.file_size ? (
+                  <span className="text-[11px] text-muted-foreground/60">
+                    {(report.file_size / 1024 / 1024).toFixed(1)} MB
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* nav controls — only shown if more than 1 */}
+      {total > 1 && (
+        <>
+          <button
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-background transition-colors shadow-sm z-10"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-background transition-colors shadow-sm z-10"
+            aria-label="Next"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          {/* dots */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {reports.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                className={cn(
+                  "rounded-full transition-all",
+                  i === idx ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-primary/30 hover:bg-primary/60"
+                )}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </motion.div>
   );
 }
 
@@ -190,6 +328,11 @@ export default function Reports() {
     },
   });
 
+  // Up to 3 reports marked featured, in publish_date order
+  const featuredReports = useMemo(() => {
+    return reports.filter((r) => r.featured).slice(0, 3);
+  }, [reports]);
+
   /* derived data */
   const filtered = useMemo(() => {
     let list = reports.filter((r) => {
@@ -201,7 +344,6 @@ export default function Reports() {
       return matchCat && matchSearch;
     });
 
-    // sort
     list = [...list].sort((a, b) => {
       switch (sort) {
         case "date-desc":
@@ -242,7 +384,7 @@ export default function Reports() {
       <section
         className="relative py-16 md:py-24 text-white overflow-hidden"
         style={{
-          backgroundImage: `url('/images/hero/news-hero.webp')`,
+          backgroundImage: `url('https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -272,6 +414,11 @@ export default function Reports() {
       {/* ── body ───────────────────────────────────────────────── */}
       <section className="py-10 bg-background">
         <div className="container max-w-5xl">
+          {/* featured carousel — shown only on All tab with no search */}
+          {!isLoading && featuredReports.length > 0 && activeCategory === "All" && !search && (
+            <FeaturedCarousel reports={featuredReports} />
+          )}
+
           {/* stats */}
           {!isLoading && (
             <StatsBar total={reports.length} categories={uniqueCategories} withFiles={withFiles} />
@@ -387,10 +534,18 @@ export default function Reports() {
                       transition={{ delay: idx * 0.04, duration: 0.3 }}
                       className="group bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
                     >
-                      {/* category icon */}
-                      <div className={cn("p-2.5 rounded-lg text-white shrink-0", meta.color)}>
-                        <CatIcon className="w-5 h-5" />
-                      </div>
+                      {/* portrait cover thumbnail or category icon */}
+                      {report.cover_image ? (
+                        <img
+                          src={report.cover_image}
+                          alt=""
+                          className="w-10 h-14 object-cover rounded shrink-0 border border-border shadow-sm"
+                        />
+                      ) : (
+                        <div className={cn("p-2.5 rounded-lg text-white shrink-0", meta.color)}>
+                          <CatIcon className="w-5 h-5" />
+                        </div>
+                      )}
 
                       {/* info */}
                       <div className="flex-1 min-w-0">

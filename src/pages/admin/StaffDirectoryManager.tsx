@@ -312,7 +312,7 @@ export default function StaffDirectoryManager() {
       )}
 
       {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog modal={false} open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Staff Member" : "Add Staff Member"}</DialogTitle>

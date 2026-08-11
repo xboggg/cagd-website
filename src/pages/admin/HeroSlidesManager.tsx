@@ -133,7 +133,7 @@ export default function HeroSlidesManager() {
               Reset to Defaults
             </Button>
           )}
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" }); } }}>
+          <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" }); } }}>
             <DialogTrigger asChild>
               <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> Add Slide</Button>
             </DialogTrigger>

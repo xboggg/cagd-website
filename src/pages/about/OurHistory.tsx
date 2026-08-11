@@ -127,7 +127,7 @@ export default function OurHistory() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/images/hero/news-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/hero-image3.png"
         overlayOpacity={0.6}
         height="h-[500px] md:h-[600px]"
       >

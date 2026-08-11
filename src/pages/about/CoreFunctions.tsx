@@ -95,7 +95,7 @@ export default function CoreFunctions() {
 
       {/* ── Hero ── */}
       <ParallaxHero
-        backgroundImage="/images/hero/cag-hero.webp"
+        backgroundImage="https://db.techtrendi.com/storage/v1/object/public/cagd-hero-images/cag-hero.png"
         overlayOpacity={0.6}
         height="h-[450px] md:h-[550px]"
       >

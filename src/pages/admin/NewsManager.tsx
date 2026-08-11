@@ -305,7 +305,7 @@ export default function NewsManager() {
         <Button variant="outline" onClick={handleTranslateAll} disabled={translatingAll}>
             {translatingAll ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Translating...</> : <><Languages className="w-4 h-4 mr-2" /> Translate All to Twi</>}
           </Button>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); if (editing) setForm(initialForm); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); if (editing) setForm(initialForm); } }}>
           <DialogTrigger asChild>
             <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> New Post</Button>
           </DialogTrigger>

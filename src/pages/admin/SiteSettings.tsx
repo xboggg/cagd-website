@@ -139,7 +139,7 @@ export default function SiteSettings() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-heading font-bold">All Settings (raw)</h2>
-          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ key: "", value: "" }); } }}>
+          <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ key: "", value: "" }); } }}>
             <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Setting</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editing ? "Edit Setting" : "New Setting"}</DialogTitle></DialogHeader>

@@ -74,7 +74,7 @@ export default function RegionalOfficesManager() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-heading font-bold">Regional Offices</h1>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ region: "", phone: "", email: "", address: "", director_name: "", director_photo: "", latitude: "", longitude: "" }); } }}>
+        <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditing(null); setForm({ region: "", phone: "", email: "", address: "", director_name: "", director_photo: "", latitude: "", longitude: "" }); } }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add Office</Button></DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Edit Office" : "New Office"}</DialogTitle></DialogHeader>
