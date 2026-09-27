@@ -7,26 +7,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Loader2, AlertTriangle, Shield } from "lucide-react";
+import { Plus, Trash2, Loader2, AlertTriangle, Shield, Crown, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { logAudit } from "@/lib/auditLog";
 
 const CORPORATE_DOMAIN = "@cagd.gov.gh";
+const SUPER_ADMIN_EMAIL = "edmund.adjekum@cagd.gov.gh";
 
 export default function UserManagement() {
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<{ id: string; email: string } | null>(null);
+  const [resetting, setResetting] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", role: "editor" as string });
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const fetchData = async () => {
-    // Fetch roles with user emails via auth admin or just roles
     const { data: rolesData } = await supabase.from("cagd_user_roles").select("*");
-    setRoles(rolesData || []);
+    // Sort: super admin first, then by created_at
+    const sorted = (rolesData || []).sort((a: any, b: any) => {
+      if (a.email === SUPER_ADMIN_EMAIL) return -1;
+      if (b.email === SUPER_ADMIN_EMAIL) return 1;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+    setRoles(sorted);
     setLoading(false);
   };
 
@@ -100,6 +109,32 @@ export default function UserManagement() {
     fetchData();
   };
 
+  const openResetDialog = (id: string, email: string) => {
+    setResetTarget({ id, email });
+    setResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetTarget) return;
+    setResetting(true);
+    // Send password reset email — works with anon key
+    const { error } = await supabase.auth.resetPasswordForEmail(resetTarget.email, {
+      redirectTo: `${window.location.origin}/admin/login`,
+    });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setResetting(false);
+      return;
+    }
+    logAudit({ action: "update", resourceType: "user_password", resourceId: resetTarget.id, resourceTitle: resetTarget.email });
+    toast({ title: "Password reset email sent", description: `A reset link has been sent to ${resetTarget.email}` });
+    setResetDialogOpen(false);
+    setResetTarget(null);
+    setResetting(false);
+  };
+
+  const isSuperAdmin = (email: string | null) => email === SUPER_ADMIN_EMAIL;
+  const isOwnRow = (r: any) => r.user_id === user?.id;
   const emailHint = form.email && !isValidCorporateEmail(form.email);
 
   return (
@@ -112,6 +147,8 @@ export default function UserManagement() {
             Only <strong>{CORPORATE_DOMAIN}</strong> emails can be added
           </p>
         </div>
+
+        {/* Add User Dialog */}
         <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setForm({ email: "", password: "", role: "editor" }); }}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add User</Button></DialogTrigger>
           <DialogContent>
@@ -167,6 +204,26 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
+      {/* Reset Password Dialog */}
+      <Dialog modal={false} open={resetDialogOpen} onOpenChange={(o) => { setResetDialogOpen(o); if (!o) setResetTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4" /> Reset Password
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              A password reset link will be sent to <strong>{resetTarget?.email}</strong>. They must click the link to set their new password.
+            </p>
+            <Button onClick={handleResetPassword} className="w-full" disabled={resetting}>
+              {resetting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
       ) : roles.length === 0 ? (
@@ -185,15 +242,28 @@ export default function UserManagement() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
+                <TableHead className="w-28">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {roles.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-sm">{r.email || r.user_id.slice(0, 8) + "…"}</TableCell>
+                <TableRow key={r.id} className={isSuperAdmin(r.email) ? "bg-amber-50/40 dark:bg-amber-950/20" : ""}>
+                  <TableCell className="font-medium text-sm">
+                    <div className="flex items-center gap-2">
+                      {isSuperAdmin(r.email) && (
+                        <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      )}
+                      {r.email || r.user_id.slice(0, 8) + "…"}
+                    </div>
+                  </TableCell>
                   <TableCell>
-                    {r.user_id !== user?.id ? (
+                    {isSuperAdmin(r.email) ? (
+                      <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+                        <Crown className="w-3 h-3" /> Super Admin
+                      </Badge>
+                    ) : isOwnRow(r) ? (
+                      <Badge variant="default">{r.role}</Badge>
+                    ) : (
                       <Select value={r.role} onValueChange={(v) => handleUpdateRole(r.id, v, r.email)}>
                         <SelectTrigger className="w-32 h-8">
                           <SelectValue />
@@ -204,18 +274,31 @@ export default function UserManagement() {
                           <SelectItem value="viewer">Viewer</SelectItem>
                         </SelectContent>
                       </Select>
-                    ) : (
-                      <Badge variant="default">{r.role}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(r.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    {r.user_id !== user?.id && (
-                      <Button size="icon" variant="ghost" onClick={() => handleDeleteRole(r.id, r.email)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                    {!isSuperAdmin(r.email) && !isOwnRow(r) && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Reset password"
+                          onClick={() => openResetDialog(r.id, r.email)}
+                        >
+                          <KeyRound className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Remove user"
+                          onClick={() => handleDeleteRole(r.id, r.email)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
