@@ -19,6 +19,7 @@ interface Announcement {
   title: string;
   body: string;
   priority: string;
+  image_url: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
   published: boolean;
@@ -27,7 +28,7 @@ interface Announcement {
   expires_at: string | null;
 }
 
-const emptyForm = { title: "", body: "", priority: "normal", attachment_url: "", attachment_name: "", published: true, expires_at: "" };
+const emptyForm = { title: "", body: "", priority: "normal", image_url: "", attachment_url: "", attachment_name: "", published: true, expires_at: "" };
 
 export default function AnnouncementsManager() {
   const [items, setItems] = useState<Announcement[]>([]);
@@ -62,6 +63,7 @@ export default function AnnouncementsManager() {
       title: item.title,
       body: item.body,
       priority: item.priority,
+      image_url: item.image_url || "",
       attachment_url: item.attachment_url || "",
       attachment_name: item.attachment_name || "",
       published: item.published,
@@ -81,6 +83,7 @@ export default function AnnouncementsManager() {
       title: form.title.trim(),
       body: form.body.trim(),
       priority: form.priority,
+      image_url: form.image_url || null,
       attachment_url: form.attachment_url || null,
       attachment_name: form.attachment_name || null,
       published: form.published,
@@ -149,7 +152,11 @@ export default function AnnouncementsManager() {
         <div className="space-y-3">
           {items.map((item) => (
             <div key={item.id} className="flex items-center gap-3 bg-card border border-border rounded-lg p-4">
-              {priorityIcon(item.priority)}
+              {item.image_url ? (
+                <img src={item.image_url} alt="" className="w-10 h-10 rounded object-cover shrink-0 border border-border" />
+              ) : (
+                priorityIcon(item.priority)
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-medium text-sm truncate">{item.title}</p>
@@ -181,8 +188,8 @@ export default function AnnouncementsManager() {
               <Label>Body *</Label>
               <Textarea rows={6} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Write the announcement content..." />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="min-w-0">
                 <Label>Priority</Label>
                 <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -193,11 +200,28 @@ export default function AnnouncementsManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label>Expires On</Label>
-                <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
+                <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} className="w-full min-w-0" />
               </div>
             </div>
+
+            <div>
+              <Label className="mb-1.5 block">Feature Image</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Shown at the top of the announcement on the staff page. Best size 1200 by 630 pixels.
+              </p>
+              <FileUpload
+                bucket="cagd-announcements"
+                id="announcement-image"
+                accept="image/*"
+                maxSize={5}
+                label="Upload feature image (max 5MB)"
+                currentUrl={form.image_url}
+                onUpload={(url) => setForm({ ...form, image_url: url })}
+              />
+            </div>
+
             <div>
               <Label className="mb-1.5 block">Attachment</Label>
               {form.attachment_url ? (
@@ -205,7 +229,7 @@ export default function AnnouncementsManager() {
                   <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{form.attachment_name || "Attachment"}</p>
-                    <a href={form.attachment_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate block">{form.attachment_url}</a>
+                    <a href={form.attachment_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block break-all line-clamp-2">{form.attachment_url}</a>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setForm({ ...form, attachment_url: "", attachment_name: "" })} className="text-destructive shrink-0">Remove</Button>
                 </div>

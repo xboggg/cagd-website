@@ -13,6 +13,7 @@ interface Announcement {
   title: string;
   body: string;
   priority: "normal" | "urgent" | "critical";
+  image_url: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
   author_name: string;
@@ -87,7 +88,16 @@ export default function Announcements() {
                       onClick={() => setExpandedId(isExpanded ? null : a.id)}
                       className="w-full text-left p-4 flex items-start gap-3"
                     >
-                      <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${config.text}`} />
+                      {a.image_url && !isExpanded ? (
+                        <img
+                          src={a.image_url}
+                          alt=""
+                          loading="lazy"
+                          className="w-14 h-14 rounded object-cover shrink-0 border border-border"
+                        />
+                      ) : (
+                        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${config.text}`} />
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {a.priority !== "normal" && (
@@ -102,7 +112,15 @@ export default function Announcements() {
                     </button>
 
                     {isExpanded && (
-                      <div className="px-4 pb-4 pl-12">
+                      <div className="px-4 pb-4 sm:pl-12">
+                        {a.image_url && (
+                          <img
+                            src={a.image_url}
+                            alt={a.title}
+                            loading="lazy"
+                            className="w-full max-h-[280px] sm:max-h-[400px] object-cover rounded-lg mb-4 border border-border"
+                          />
+                        )}
                         <p className="text-sm text-foreground whitespace-pre-wrap mb-3">{a.body}</p>
                         {a.attachment_url && (
                           <a

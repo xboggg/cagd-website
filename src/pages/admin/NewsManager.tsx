@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Loader2, Eye, Calendar as CalendarIcon, AlertTriangle, ChevronLeft, ChevronRight, Search, Languages } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Eye, Calendar as CalendarIcon, AlertTriangle, ChevronLeft, ChevronRight, Search, Languages, Facebook, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TagsInput from "@/components/TagsInput";
 import FileUpload from "@/components/FileUpload";
@@ -39,6 +39,7 @@ interface NewsForm {
   file_url: string;
   tags: string[];
   publish_date: string;
+  share_to_social: boolean;
 }
 
 const initialForm: NewsForm = {
@@ -55,6 +56,7 @@ const initialForm: NewsForm = {
   file_url: "",
   tags: [],
   publish_date: "",
+  share_to_social: true,
 };
 
 export default function NewsManager() {
@@ -69,6 +71,8 @@ export default function NewsManager() {
   const [translatingAll, setTranslatingAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [social, setSocial] = useState<Record<string, any>>({});
+  const [pushing, setPushing] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -83,9 +87,50 @@ export default function NewsManager() {
     const { data } = await supabase.from("cagd_news").select("*").order("created_at", { ascending: false });
     setItems(data || []);
     setLoading(false);
+    fetchSocial();
+  };
+
+  // Social push log, keyed by story. Read-only here — only the server
+  // function writes to this table.
+  const fetchSocial = async () => {
+    const { data, error } = await supabase
+      .from("cagd_social_posts" as any)
+      .select("news_id, platform, status, remote_post_id, error, posted_at");
+    if (error) return; // table not created yet — the column just stays empty
+    const map: Record<string, any> = {};
+    for (const row of (data || []) as any[]) map[row.news_id] = row;
+    setSocial(map);
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  // Ask the server to push a story out. Never blocks the save, and a
+  // failure here never means the story failed to publish on the site.
+  const pushToSocial = async (newsId: string, force = false) => {
+    setPushing(newsId);
+    try {
+      const { data, error } = await supabase.functions.invoke("publish-to-social", {
+        body: { news_id: newsId, force },
+      });
+      if (error) throw error;
+      const result = (data as any)?.results?.[0];
+      if (result?.status === "sent") {
+        toast({ title: "Shared on Facebook" });
+      } else if (result?.status === "skipped") {
+        toast({ title: "Not shared", description: result.error });
+      } else if (result?.status === "failed") {
+        toast({ title: "Facebook post failed", description: result.error, variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({
+        title: "Could not reach the sharing service",
+        description: e?.message || "The story is published on the website. Use Retry once this is fixed.",
+        variant: "destructive",
+      });
+    }
+    setPushing(null);
+    fetchSocial();
+  };
 
   // Auto-save draft to localStorage (new posts AND edits)
   useEffect(() => {
@@ -170,13 +215,22 @@ export default function NewsManager() {
       tags: form.tags,
       author_id: user?.id,
       publish_date: publishDate,
+      share_to_social: form.share_to_social,
     };
 
+    // Whether this save is the moment the story goes live. Used below to
+    // decide if it should also go out to Facebook.
+    const becomingPublished =
+      form.status === "published" && (!editing || editing.status !== "published");
+
     let error;
+    let savedId: string | undefined = editing?.id;
     if (editing) {
       ({ error } = await supabase.from("cagd_news").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("cagd_news").insert(payload));
+      const inserted = await supabase.from("cagd_news").insert(payload).select("id").single();
+      error = inserted.error;
+      savedId = inserted.data?.id;
     }
 
     setSaving(false);
@@ -195,6 +249,12 @@ export default function NewsManager() {
     setEditing(null);
     setForm(initialForm);
     fetchItems();
+
+    // The story is already safely saved and live at this point. Sharing
+    // happens afterwards so a social failure can never undo a publish.
+    if (becomingPublished && form.share_to_social && savedId) {
+      pushToSocial(savedId);
+    }
   };
 
   const handleDelete = async () => {
@@ -239,6 +299,7 @@ export default function NewsManager() {
       file_url: item.file_url || "",
       tags: item.tags || [],
       publish_date: item.publish_date ? item.publish_date.slice(0, 16) : "",
+      share_to_social: item.share_to_social !== false,
     });
   };
 
@@ -395,6 +456,27 @@ export default function NewsManager() {
                 </div>
               </div>
 
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                <input
+                  type="checkbox"
+                  id="share-to-social"
+                  className="mt-0.5 shrink-0"
+                  checked={form.share_to_social}
+                  onChange={(e) => setForm({ ...form, share_to_social: e.target.checked })}
+                />
+                <div className="min-w-0">
+                  <Label htmlFor="share-to-social" className="cursor-pointer flex items-center gap-2">
+                    <Facebook className="w-4 h-4 text-primary shrink-0" />
+                    Also share on Facebook
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Posts the headline, picture and a link once the story is Published.
+                    Untick for anything that should not be broadcast, such as an internal circular.
+                    Editing the story later never posts it a second time.
+                  </p>
+                </div>
+              </div>
+
               <div>
                 <Label className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4" />
@@ -489,6 +571,7 @@ export default function NewsManager() {
                   <SortableHead column="category" label="Category" sort={sort} onSort={toggleSort} />
                   <SortableHead column="status" label="Status" sort={sort} onSort={toggleSort} />
                   <SortableHead column="publish_date" label="Date" sort={sort} onSort={toggleSort} />
+                  <TableHead className="w-36">Facebook</TableHead>
                   <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -528,6 +611,37 @@ export default function NewsManager() {
                       )}
                     </TableCell>
                     <TableCell>{item.publish_date ? new Date(item.publish_date).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const s = social[item.id];
+                        if (pushing === item.id) {
+                          return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Sending</span>;
+                        }
+                        if (!s) {
+                          return item.status === "published" && item.share_to_social === false
+                            ? <span className="text-xs text-muted-foreground">Not shared</span>
+                            : <span className="text-xs text-muted-foreground">—</span>;
+                        }
+                        if (s.status === "sent") {
+                          return <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-500"><CheckCircle2 className="w-3 h-3" /> Shared</span>;
+                        }
+                        if (s.status === "pending") {
+                          return (
+                            <button onClick={() => pushToSocial(item.id)} className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-500 hover:underline" title="Queued — click to send now">
+                              <Clock className="w-3 h-3" /> Queued
+                            </button>
+                          );
+                        }
+                        if (s.status === "skipped") {
+                          return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={s.error || ""}><XCircle className="w-3 h-3" /> Not shared</span>;
+                        }
+                        return (
+                          <button onClick={() => pushToSocial(item.id, true)} className="inline-flex items-center gap-1 text-xs text-destructive hover:underline" title={s.error || "Failed"}>
+                            <RefreshCw className="w-3 h-3" /> Failed — Retry
+                          </button>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {item.slug && (
