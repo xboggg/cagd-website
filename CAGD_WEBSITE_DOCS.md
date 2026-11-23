@@ -119,13 +119,14 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 
 | Table | Purpose |
 |---|---|
-| `cagd_news` | News articles |
+| `cagd_news` | News articles. `share_to_social` controls Facebook auto-push |
 | `cagd_events` | Public events |
 | `cagd_reports` | PDF reports (with cover image + featured flag) |
 | `cagd_management_profiles` | Leadership team |
 | `cagd_gallery_albums` | Gallery albums |
 | `cagd_gallery_photos` | Gallery photos |
-| `cagd_announcements` | Announcement banners |
+| `cagd_announcements` | Internal staff announcements (`/staff/announcements`). Has `image_url` feature image + `attachment_url` |
+| `cagd_social_posts` | Log of stories pushed out to social media, one row per story per platform |
 | `cagd_contact_messages` | Contact form submissions |
 | `cagd_divisions` | Division information |
 | `cagd_document_downloads` | Download tracking |
@@ -164,7 +165,7 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 | /admin/subscriptions | Newsletter subscribers |
 | /admin/feedback | Public feedback |
 | /admin/faqs | FAQs |
-| /admin/announcements | Site banners |
+| /admin/announcements | Internal staff announcements (title, body, priority, feature image, attachment, expiry) |
 | /admin/staff-events | Internal staff events |
 | /admin/forms | Downloadable forms |
 | /admin/service-status | System status |
@@ -181,9 +182,25 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 - Toggle the star icon in Reports Manager to feature a report
 - Each report supports an optional portrait cover image
 
-### Announcement Banner
-- Site-wide banner managed via Admin → Announcements
+### Announcement Banner (site-wide strip)
+- Managed via Admin → **Site Settings**, not Admin → Announcements
 - Reads from `cagd_site_settings` → `announcement_banner` key
+
+### Staff Announcements (internal notices)
+- A different feature from the banner above. Managed via Admin → Announcements,
+  read by staff at `/staff/announcements` (sign-in required)
+- Each notice has a priority (Normal / Urgent / Critical), an optional **feature
+  image**, an optional attachment, and an optional expiry date
+- The feature image shows as a thumbnail in the list and as a banner above the
+  text when a notice is opened
+
+### Facebook auto-push (phase 1)
+- Publishing a news story can post it to the CAGD Facebook page automatically
+- One-way only: website → Facebook. Nothing on Facebook changes the website, so
+  every story keeps its draft/approve step and its audit trail entry
+- Authors can untick **Also share on Facebook** per story
+- A story posts once; editing a published story never re-posts it
+- Inert until a Facebook page token is configured
 
 ### i18n
 - English and Twi language support
@@ -204,6 +221,8 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 | Supabase token refresh causing full-page spinner in admin | ✅ Fixed 2026-08-11 |
 | Service Worker intercepting image requests | ✅ Fixed |
 | CORS on Supabase storage | ✅ Fixed |
+| Admin dialogs scrolled sideways instead of wrapping | ✅ Fixed 2026-11-22 |
+| Reset-password button does nothing | Known — no SMTP configured; reset by SQL |
 
 ---
 
@@ -213,5 +232,9 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 - [ ] Upload `dist/index.html` to web root
 - [ ] Upload new `dist/assets/index-XXXXXXXX.js` to assets folder
 - [ ] Delete previous `index-XXXXXXXX.js`
+- [ ] If the change needs a new database column or table, run that SQL first
 - [ ] Hard refresh (Ctrl+Shift+R) to verify
 - [ ] Commit and push to GitHub
+
+> Pushing to GitHub does **not** deploy. There is no CI/CD — the site only
+> changes when the built files are uploaded to the web host.

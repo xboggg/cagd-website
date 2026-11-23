@@ -1,73 +1,132 @@
-# Welcome to your Lovable project
+# CAGD Website
 
-## Project info
+The official website of the **Controller and Accountant-General's Department,
+Ghana** — [cagd.gov.gh](https://cagd.gov.gh).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+A React single-page application with a content management admin panel and an
+internal staff portal, backed by Supabase.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Stack
 
-**Use Lovable**
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 |
+| UI | shadcn/ui + Radix UI + Tailwind CSS |
+| Routing | React Router v6 |
+| Data | Supabase JS SDK v2 + TanStack Query v5 |
+| Auth | Supabase Auth (email/password) |
+| Database & storage | Supabase (self-hosted) |
+| i18n | i18next — English + Twi |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Local development
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requires Node.js 18+.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev     # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+Create a `.env` in the project root:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+VITE_SUPABASE_URL="<supabase url>"
+VITE_SUPABASE_ANON_KEY="<anon key>"
+```
 
-**Use GitHub Codespaces**
+`.env` is git-ignored and must stay that way.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Other scripts:
 
-## What technologies are used for this project?
+```sh
+npm run build   # production build into dist/
+npm run test    # vitest
+npm run lint    # eslint
+```
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment
 
-## How can I deploy this project?
+> **Pushing to GitHub does not deploy anything.** There is no CI/CD.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+The site is served from cPanel shared hosting. A release is a manual upload:
 
-## Can I connect a custom domain to my Lovable project?
+1. `npm run build`
+2. Upload `dist/index.html` to the web root
+3. Upload the new `dist/assets/index-*.js` (and the `.css` if its hash changed)
+   to `assets/`
+4. Leave the previous hashed files in place until the new ones are up
+5. Hard-refresh and confirm the page is serving the new bundle
 
-Yes, you can!
+If a change needs a new database column or table, **run that SQL first** — the
+new bundle will look for it the moment it is uploaded.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The project is deliberately not connected to any build platform. A Vercel
+project existed until 2026-11-23; it never served the live site and only
+published a stale public duplicate, so it was removed. Do not reconnect it.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+> Note for any future CI: `npm install` will fail unless
+> `PUPPETEER_SKIP_DOWNLOAD=1` is set. `puppeteer` is used only by a local deploy
+> helper, never by `vite build`.
+
+---
+
+## Project layout
+
+```
+src/
+├── App.tsx                 # Route definitions
+├── components/
+│   ├── admin/              # Admin layout + role guards
+│   ├── auth/               # Auth route guard
+│   ├── layout/             # Public header, footer, banner
+│   ├── ui/                 # shadcn/ui components
+│   └── FileUpload.tsx      # Upload to Supabase storage
+├── hooks/useAuth.tsx       # Auth context — user, role, session
+├── integrations/supabase/  # Client + generated types
+├── pages/
+│   ├── admin/              # Admin manager pages
+│   ├── staff/              # Staff portal (sign-in required)
+│   └── [public pages]
+└── i18n/                   # English + Twi
+
+supabase/
+├── migrations/             # SQL migrations
+└── functions/              # Deno edge functions
+```
+
+---
+
+## Roles
+
+- **admin** — full access to every admin section
+- **editor** — Dashboard, News, Reports, Events and Messages only
+
+Roles live in the `cagd_user_roles` table. The `/staff` portal is open to any
+signed-in user.
+
+---
+
+## Documentation
+
+| File | Contents |
+|---|---|
+| `CAGD_DOCUMENTATION.md` | Master documentation — architecture, deploy, database, common tasks |
+| `CAGD_WEBSITE_DOCS.md` | Technical reference — structure, tables, admin pages, features |
+| `CAGD_WEBSITE_DOCS_INTERNAL.md` | **Private.** Infrastructure, credentials locations, gotchas. Git-ignored — never commit it |
+
+---
+
+## Security notes
+
+- Never commit `.env`, `.env.deploy`, or `CAGD_WEBSITE_DOCS_INTERNAL.md`
+- The Supabase instance is shared with other projects — only touch
+  `cagd_`-prefixed tables, functions and buckets
+- There is currently **no SMTP** configured, so the reset-password button does
+  nothing. Passwords are reset by SQL until that is fixed

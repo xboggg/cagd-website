@@ -3,7 +3,9 @@
 **Site:** cagd.gov.gh  
 **Department:** Controller and Accountant-General's Department, Ghana  
 **Stack:** Vite + React 18 + TypeScript + Tailwind + shadcn/ui + Supabase  
-**Last updated:** 2026-07-17 (rev 2 — image storage architecture, Imunify360 on :2083, deploy method update)
+**Last updated:** 2026-11-23 (rev 3 — announcement feature image, social auto-push phase 1, edge functions, Vercel project removed, Supabase Studio login documented)
+
+> Deeper internal detail lives in `CAGD_WEBSITE_DOCS_INTERNAL.md` (PRIVATE — never commit).
 
 ---
 
@@ -204,11 +206,25 @@ The permanent fix for image uploads is already in place (FileUpload.tsx rewritte
 **Docker path:** `/opt/supabase/docker/`  
 **Kong port (internal):** 8090  
 
+### Getting into Supabase Studio
+
+Open **https://db.techtrendi.com** in a browser. A username/password box appears
+(Kong basic auth) — enter the dashboard login and Studio opens. The **SQL Editor**
+is in the left sidebar.
+
+- Dashboard login: see `CAGD_WEBSITE_DOCS_INTERNAL.md` §3.2 (not in this repo)
+- A `curl` to that URL returns `{"message":"Unauthorized"}` — that is the login
+  gate, not an outage
+- SSL error instead of the login box → check whether a VPN is on first
+
+> ⚠️ This Supabase instance is **shared** with other projects (142 tables as of
+> 2026-11-23). Only touch `cagd_`-prefixed objects.
+
 ### Credentials (on server 38)
 
 SSH to `root@38.242.195.0` (key: `~/.ssh/id_rsa`), then:
 ```bash
-cat /opt/supabase/docker/.env | grep -E 'SERVICE_ROLE|ANON_KEY|JWT_SECRET'
+cat /opt/supabase/docker/.env | grep -E 'SERVICE_ROLE|ANON_KEY|JWT_SECRET|DASHBOARD'
 ```
 
 ### CAGD Tables (all prefixed `cagd_`)
@@ -216,7 +232,17 @@ cat /opt/supabase/docker/.env | grep -E 'SERVICE_ROLE|ANON_KEY|JWT_SECRET'
 `cagd_news`, `cagd_events`, `cagd_reports`, `cagd_management_profiles`,  
 `cagd_divisions`, `cagd_projects`, `cagd_gallery_albums`, `cagd_gallery_photos`,  
 `cagd_regional_offices`, `cagd_site_settings`, `cagd_contact_messages`,  
-`cagd_newsletter_subscribers`, `cagd_user_roles`, `cagd_profiles`
+`cagd_newsletter_subscribers`, `cagd_user_roles`, `cagd_profiles`,  
+`cagd_announcements`, `cagd_social_posts`, `cagd_staff_directory`,  
+`cagd_staff_events`, `cagd_audit_trail`, `cagd_forms_library`, `cagd_feedback`
+
+Columns added 2026-11-22:
+- `cagd_announcements.image_url` — feature image for a staff announcement
+- `cagd_news.share_to_social` — author's "Also share on Facebook" tick box
+
+> `cagd_announcements` holds **internal staff announcements** shown at
+> `/staff/announcements`. The site-wide banner is a different thing — the
+> `announcement_banner` key in `cagd_site_settings`.
 
 ### Supabase Storage Buckets (CAGD)
 
@@ -245,6 +271,48 @@ docker exec supabase-db psql -U postgres -c "YOUR SQL HERE"
 Managed in `cagd_user_roles` table. Two roles:
 - `admin` — full access to all sections
 - `editor` — access to: Dashboard, News, Reports, Events, Messages only
+
+Four departmental admins were added on 2026-11-23 (Ibrahim Akesse, Raymond Ogah,
+Hamza Aidoo, Kamaldeen Tanko). They were created by SQL with
+`email_confirmed_at` pre-set, because this Supabase instance has **no working
+SMTP** — so the confirmation mail and the **reset-password button both do
+nothing**. Until SMTP is configured, passwords are reset by SQL in Studio.
+
+### Announcements — Feature Image (2026-11-22)
+
+`/admin/announcements` manages **internal staff announcements**, not the
+site-wide banner. Each can now carry a Feature Image (bucket
+`cagd-announcements`, best 1200×630) separate from its Attachment, so a notice
+can have both a picture and a PDF. It shows as a thumbnail in the admin list and
+as a banner on `/staff/announcements` when the notice is opened.
+
+### News — Facebook auto-push (phase 1, 2026-11-22)
+
+`/admin/news` has an **Also share on Facebook** tick box and a Facebook status
+column (Shared / Queued / Not shared / Failed — Retry).
+
+Direction is one-way: **website → Facebook**. Nothing reads from Facebook, so the
+site stays the record and every story keeps its draft/approve step and audit
+trail entry.
+
+Publishing writes a row into `cagd_social_posts`; a unique index on
+`(news_id, platform)` is what guarantees a story posts **once**, so editing a
+published story never re-posts it. The database trigger makes no network call,
+so it cannot slow or block a save.
+
+**Currently inert by design** — no Facebook credentials are set, so rows are
+queued and nothing is sent. Connecting it needs a CAGD Facebook Page admin and
+the `publish-to-social` edge function deployed.
+
+Full detail, including the secrets and the remaining phases, is in
+`CAGD_WEBSITE_DOCS_INTERNAL.md` §16–17.
+
+### Admin dialogs no longer scroll sideways (2026-11-22)
+
+`DialogContent` is a CSS grid, and grid items cannot shrink below `min-content` —
+so long URLs and date inputs pushed dialogs wider instead of wrapping. Fixed once
+in `src/components/ui/dialog.tsx`, which covers every admin dialog. Do not widen
+individual dialogs to work around it.
 
 ### Admin Spinner Fix (implemented 2026-07)
 
@@ -437,8 +505,30 @@ docker ps | grep supabase
 
 ## 10. GitHub Repository
 
-**Repo:** `https://github.com/xboggg/cagd-website` (public)  
+**Repo:** `https://github.com/xboggg/cagd-website`  
 **Branch:** `main`  
+
+> ⚠️ **Visibility is unconfirmed.** This section has said *public*;
+> `CAGD_WEBSITE_DOCS_INTERNAL.md` §15 says *private*. GitHub's API was
+> unreachable on 2026-11-23, so it could not be settled. This matters because of
+> the password in git history below — **check it, and if the repo is public,
+> treat that password as disclosed.**
+
+### No CI/CD — pushing does not deploy
+
+Pushing to GitHub changes nothing on cagd.gov.gh. The site only updates when
+files are uploaded to NITA by hand (Section 3).
+
+A **Vercel** project (`cagd-website`) used to build on every push. It never
+served cagd.gov.gh — it published a stale, crawlable public duplicate at
+`cagd-website.vercel.app` that pointed at the live database. It was **deleted on
+2026-11-23**, along with `vercel.json` and the local `.vercel/` folder. Do not
+reconnect it.
+
+> If any CI is ever added, note that `npm install` will fail: `puppeteer`
+> downloads ~170MB of Chrome. It is only used by
+> `scripts/deploy-with-waf-bypass.mjs`, never by `vite build`, so set
+> `PUPPETEER_SKIP_DOWNLOAD=1` on the install step.
 
 ### ⚠️ Security Debt
 
@@ -526,6 +616,6 @@ cagd-website/
 | cPanel user | `cagdgov` |
 | cPanel token | In `.env.deploy` |
 | SSH to srv-38 | `ssh -i ~/.ssh/id_rsa root@38.242.195.0` |
-| Supabase admin | `https://db.techtrendi.com` (Kong proxied) |
+| Supabase admin | `https://db.techtrendi.com` (Kong proxied — browser login box; credentials in the internal doc) |
 | Admin login | `https://cagd.gov.gh/admin/login` |
 | Admin email | `edmund.adjekum@cagd.gov.gh` |
