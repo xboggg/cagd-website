@@ -1,6 +1,0 @@
-{
-  "installCommand": "PUPPETEER_SKIP_DOWNLOAD=1 npm install --no-audit --no-fund",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
