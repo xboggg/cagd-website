@@ -47,3 +47,6 @@ migrate2.php
 id_rsa
 id_rsa.*
 vite.config.ts.timestamp-*.mjs
+
+# Local machine launchers - contain this PC's folder path, not for GitHub
+*.bat
