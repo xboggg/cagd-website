@@ -54,16 +54,30 @@ VITE_SUPABASE_ANON_KEY="your-anon-key"
 npm run build
 ```
 Output goes to `dist/`. Key output files:
-- `dist/index.html` — entry point
+- `dist/index.html` — entry point; this is the file that names the bundle
 - `dist/assets/index-XXXXXXXX.js` — main bundle (hash changes each build)
 - `dist/assets/index-XXXXXXXX.css` — stylesheet
+- `dist/assets/Game2048-*.js`, `TicTacToe-*.js`, `TriviaQuiz-*.js`,
+  `WordScramble-*.js`, `Calculator-*.js`, `CurrencyConverter-*.js` —
+  lazy-loaded Break Room chunks, **also re-hashed on most builds**
 
 ### Deploy Steps
+
+**Since 2026-11-25 deployment is over SSH** — NITA blocks cPanel's port 2083, so
+neither the File Manager nor the cPanel API works. Easiest route is to
+double-click `CAGD - Deploy to Live.bat`, which does all of the below.
+
 1. Run `npm run build`
-2. Upload `dist/index.html` to web root
-3. Upload `dist/assets/index-XXXXXXXX.js` to `assets/` folder
-4. Delete the previous `index-XXXXXXXX.js` from `assets/`
-5. CSS only needs re-uploading if the filename changed
+2. Upload **every** file in `dist/assets/` to `public_html/assets/` —
+   not only `index-*`. A missing lazy chunk 404s when a user opens that feature.
+3. Upload `dist/index.html` to the web root **LAST**
+
+⚠️ **Order matters.** `index.html` names the new bundle. Upload it first and
+every visitor gets a blank page until the assets finish arriving.
+
+⚠️ **Do not delete the previous `index-*.js`.** A browser holding a cached
+`index.html` still asks for the old bundle; deleting it breaks those visitors for
+no gain. Old assets are small and harmless — leave them.
 
 ---
 
@@ -228,13 +242,17 @@ All tables use the `cagd_` prefix with Supabase RLS enabled.
 
 ## 11. Deployment Checklist
 
-- [ ] `npm run build` — confirm success
-- [ ] Upload `dist/index.html` to web root
-- [ ] Upload new `dist/assets/index-XXXXXXXX.js` to assets folder
-- [ ] Delete previous `index-XXXXXXXX.js`
 - [ ] If the change needs a new database column or table, run that SQL first
-- [ ] Hard refresh (Ctrl+Shift+R) to verify
+- [ ] `npm run build` — confirm success
+- [ ] Upload **all** of `dist/assets/` to `public_html/assets/` (including the
+      lazy Break Room chunks, which are re-hashed most builds)
+- [ ] Upload `dist/index.html` to the web root — **LAST**
+- [ ] Hard refresh (Ctrl+Shift+R) and confirm the page shows the new bundle name
 - [ ] Commit and push to GitHub
+
+Or simply double-click **`CAGD - Deploy to Live.bat`**, which does the build,
+both uploads in the right order, and stops without touching the live site if
+anything fails.
 
 > Pushing to GitHub does **not** deploy. There is no CI/CD — the site only
 > changes when the built files are uploaded to the web host.

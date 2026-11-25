@@ -75,17 +75,33 @@ VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 ## 3. Deploy Method
 
-### ⚠️ NITA Server Constraints
+### 🚨 CHANGED 2026-11-25 — cPanel is gone, deploy over SSH
 
-The NITA server has several restrictions that affect how you can deploy:
+**Port 2083 is now blocked at NITA's end.** It no longer answers from the CAGD
+office network *or* from a phone hotspot, while ports 80, 443 and 22 to the same
+server work normally. A real `Invoke-WebRequest https://197.253.67.104:2083/`
+with a 90-second timeout still times out.
+
+This kills **both** of the old deploy routes at once — the PowerShell API method
+and the browser File Manager both ride on 2083. There is no manual fallback.
+
+**Port 22 is open**, and the key already authorised in cPanel works. SSH is now
+the deploy route. See *Working Deploy — SSH* below.
+
+### ⚠️ NITA Server Constraints
 
 | Method | Status | Reason |
 |---|---|---|
 | FTP (port 21) | BLOCKED | Port refused |
-| SSH/SFTP | BLOCKED | ISP/corporate network blocks outbound SSH |
+| **SSH / scp (port 22)** | **✅ WORKS — use this** | Open from every network tested on 2026-11-25 |
 | cPanel multipart upload | BLOCKED | openresty WAF returns 415 |
-| cPanel API v2 `savefile` (PowerShell) | ⚠️ INTERMITTENT | Imunify360 intercepts it when IP is flagged — returns bot-challenge HTML instead of JSON (see Section 4) |
-| **Browser — cPanel File Manager** | **ALWAYS WORKS** | Real browser passes Imunify360 JS challenge automatically |
+| cPanel API v2 `savefile` (PowerShell) | **DEAD** | Port 2083 unreachable since 2026-11-25 |
+| Browser — cPanel File Manager | **DEAD** | Same port 2083 — cPanel will not load at all |
+
+> Historic note: the entries below about Imunify360 bot-challenges applied when
+> 2083 was still reachable. They are kept for reference in case NITA reopens the
+> port. **Check `Test-NetConnection 197.253.67.104 -Port 2083` before trusting
+> any of it.**
 
 ### ⚠️ Imunify360 Now Blocks Port 2083 Too (discovered 2026-07-17)
 
@@ -99,14 +115,37 @@ This means the PowerShell `savefile` method may fail even though it previously w
 
 **When this happens, the only working deploy method is the browser-based cPanel File Manager.**
 
-### Working Deploy — cPanel File Manager (Browser)
+### ✅ Working Deploy — SSH (current method)
 
-1. Open `https://197.253.67.104:2083/` in a browser
-2. Log in → File Manager → navigate to `public_html/assets/`
-3. Upload the JS and CSS bundle files
-4. Navigate to `public_html/` root → upload `index.html` LAST
+**Easiest: double-click `CAGD - Deploy to Live.bat`** (on the Desktop, and in the
+repo root — gitignored by `*.bat` because it holds this PC's paths). It builds
+the site, uploads the assets, uploads `index.html` **last**, and checks the live
+page. If the build or any upload fails it stops and the live site is untouched.
 
-### PowerShell Deploy — Use When IP is Not Flagged
+By hand, the same thing:
+
+```powershell
+# The key is the one authorised in cPanel as "cagd".
+# Windows OpenSSH refuses a key other accounts can read, so lock it first:
+copy "$env:USERPROFILE\Downloads\cagd" "$env:USERPROFILE\.ssh\cagd_deploy"
+icacls "$env:USERPROFILE\.ssh\cagd_deploy" /inheritance:r
+icacls "$env:USERPROFILE\.ssh\cagd_deploy" /grant:r "$($env:USERNAME):R"
+
+npm run build
+
+scp -i "$env:USERPROFILE\.ssh\cagd_deploy" dist\assets\* cagdgov@197.253.67.104:public_html/assets/
+scp -i "$env:USERPROFILE\.ssh\cagd_deploy" dist\index.html cagdgov@197.253.67.104:public_html/
+```
+
+⚠️ **Upload every file in `dist/assets/`, not just `index-*.js` and `index-*.css`.**
+The lazy-loaded chunks (Break Room games, Calculator, Currency Converter) get new
+hashes on most builds. If only the main bundle goes up, those features 404 at the
+moment someone clicks them.
+
+⚠️ **`index.html` always goes last.** It is the file that names the new bundle;
+send it first and the live site points at files that are not there yet.
+
+### 🪦 PowerShell Deploy via cPanel API — DEAD since 2026-11-25 (port 2083 blocked)
 
 Credentials are in `cagd-website/.env.deploy` (git-ignored):
 ```
@@ -140,10 +179,15 @@ Invoke-RestMethod -Uri $BASE -Method Post -Body $body `
 
 ### Deploy Order (ALWAYS follow this)
 
-1. `dist/assets/index-HASH.js` → `public_html/assets/`
-2. `dist/assets/index-HASH.css` → `public_html/assets/` (only if hash changed)
-3. `api/upload.php` → `public_html/api/` (if changed)
-4. `dist/index.html` → `public_html/` ← ALWAYS LAST
+1. **Everything** in `dist/assets/` → `public_html/assets/` — not only `index-*.js`
+   and `index-*.css`. The lazy chunks (`Game2048-*`, `TicTacToe-*`, `TriviaQuiz-*`,
+   `WordScramble-*`, `Calculator-*`, `CurrencyConverter-*`) are re-hashed on most
+   builds, and a missing one 404s the moment a user opens that feature.
+2. `api/upload.php` → `public_html/api/` (if changed)
+3. `dist/index.html` → `public_html/` ← ALWAYS LAST
+
+Old asset files are left behind on purpose — a browser holding a cached
+`index.html` can still fetch the bundle it expects.
 
 ### What Must Deploy (not just dist/)
 
@@ -471,7 +515,37 @@ curl -s -X PUT "http://127.0.0.1:8090/auth/v1/admin/users/<USER-ID>" \
   -d '{"password": "TempPass@2026!"}'
 ```
 
-Share the temporary password with the user. They log in then use **Change Password** in the admin sidebar (bottom left).
+Alternative that needs no SSH — **Supabase Studio** at `https://db.techtrendi.com`
+(browser; the username/password box is Kong's, credentials in the internal doc).
+SQL Editor → run:
+
+```sql
+-- 1. find the account
+SELECT u.email, r.role, u.last_sign_in_at
+FROM auth.users u
+LEFT JOIN cagd_user_roles r ON r.user_id = u.id
+WHERE u.email LIKE '%cagd%'
+ORDER BY u.last_sign_in_at DESC NULLS LAST;
+
+-- 2. set a new password
+UPDATE auth.users
+SET encrypted_password = crypt('NewPasswordHere', gen_salt('bf')),
+    updated_at = now()
+WHERE email = 'user@cagd.gov.gh';
+```
+
+If it errors on `gen_salt`, prefix both calls with the schema:
+`extensions.crypt(..., extensions.gen_salt('bf'))`. It should report `UPDATE 1`;
+`UPDATE 0` means the e-mail did not match.
+
+⚠️ **The "Forgot password" link on the site does nothing.** The Supabase instance
+has no mailer, so `resetPasswordForEmail()` silently sends nothing while showing a
+"check your e-mail" message. Until SMTP is configured, the two routes above are
+the only ones that work.
+
+Share the temporary password with the user out of band. They log in, then use
+**Change Password** in the admin sidebar (bottom left) — which since 2026-11-25
+asks for the current password first and records the change in the Audit Trail.
 
 ---
 
