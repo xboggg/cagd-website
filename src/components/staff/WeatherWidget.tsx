@@ -68,15 +68,23 @@ export default function WeatherWidget() {
   if (!weather) return null;
 
   return (
-    <div className="flex items-center gap-3">
-      {getWeatherIcon(weather.code)}
-      <div>
-        <p className="text-2xl font-bold text-white">{weather.temp}°C</p>
-        <p className="text-xs text-white/70">{getDescription(weather.code)}</p>
+    <div className="rounded-xl bg-card border border-border p-4">
+      <div className="flex items-center gap-3">
+        {getWeatherIcon(weather.code)}
+        <div className="min-w-0">
+          <p className="text-2xl font-bold text-foreground tabular-nums leading-none">{weather.temp}°C</p>
+          <p className="text-xs text-muted-foreground mt-1">{getDescription(weather.code)} · Accra</p>
+        </div>
       </div>
-      <div className="hidden sm:flex gap-3 ml-3 text-xs text-white/60">
-        <span className="flex items-center gap-1"><Droplets className="w-3 h-3" />{weather.humidity}%</span>
-        <span className="flex items-center gap-1"><Wind className="w-3 h-3" />{weather.wind} km/h</span>
+      <div className="flex gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Droplets className="w-3.5 h-3.5" aria-hidden="true" />
+          <span className="tabular-nums">{weather.humidity}%</span> humidity
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Wind className="w-3.5 h-3.5" aria-hidden="true" />
+          <span className="tabular-nums">{weather.wind}</span> km/h
+        </span>
       </div>
     </div>
   );

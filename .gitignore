@@ -50,3 +50,6 @@ vite.config.ts.timestamp-*.mjs
 
 # Local machine launchers - contain this PC's folder path, not for GitHub
 *.bat
+
+# Local pre-change backups — never commit
+.backup/

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -46,14 +47,28 @@ const navItems = [
 ];
 
 function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { user } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const reset = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPw(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user?.email) {
+      toast({ title: "Not signed in", description: "Please sign in again and retry.", variant: "destructive" });
+      return;
+    }
     if (newPassword.length < 8) {
       toast({ title: "Password too short", description: "Must be at least 8 characters.", variant: "destructive" });
       return;
@@ -62,39 +77,101 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       toast({ title: "Passwords don't match", description: "Please make sure both passwords are the same.", variant: "destructive" });
       return;
     }
+    if (newPassword === currentPassword) {
+      toast({ title: "Choose a different password", description: "The new password must not be the same as your current one.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
+
+    // Prove it is really you before changing anything. Without this, anyone who
+    // finds an unattended signed-in machine could take the account over silently.
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+
+    if (authError) {
+      setLoading(false);
+      toast({
+        title: "Current password is wrong",
+        description: "Check it and try again. Nothing has been changed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
+
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Password updated", description: "Your password has been changed successfully." });
-      setNewPassword("");
-      setConfirmPassword("");
-      onOpenChange(false);
+      toast({ title: "Could not change password", description: error.message, variant: "destructive" });
+      return;
     }
+
+    logAudit({
+      action: "update",
+      resourceType: "password",
+      resourceId: user.id,
+      resourceTitle: user.email,
+      details: { method: "self-service change" },
+    });
+
+    toast({ title: "Password changed", description: "Use your new password the next time you sign in." });
+    reset();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) reset();
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Signed in as <span className="font-medium text-foreground">{user?.email}</span>
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="current-pw">Current Password</Label>
+            <Input
+              id="current-pw"
+              type={showPw ? "text" : "password"}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="The password you use now"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="new-pw">New Password</Label>
             <div className="relative">
-              <Input id="new-pw" type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" className="pr-10" required minLength={8} />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+              <Input id="new-pw" type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" className="pr-10" autoComplete="new-password" required minLength={8} />
+              <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide passwords" : "Show passwords"} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="confirm-pw">Confirm Password</Label>
-            <Input id="confirm-pw" type={showPw ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password" required />
+            <Label htmlFor="confirm-pw">Confirm New Password</Label>
+            <Input id="confirm-pw" type={showPw ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat the new password" autoComplete="new-password" required />
           </div>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Write the new password down somewhere safe. There is no reset e-mail on this
+            system yet, so a forgotten password has to be fixed in the database.
+          </p>
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
             Update Password

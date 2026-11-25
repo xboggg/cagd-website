@@ -1,45 +1,136 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Globe, Mail, CreditCard, BarChart3, Building, FileText, Shield, BookOpen } from "lucide-react";
+import { ArrowUpRight, Info } from "lucide-react";
+import { staffSystems, readySystemCount, type StaffSystem } from "@/data/staffSystems";
 
-const links = [
-  { label: "GIFMIS Portal", url: "https://gifmis.gov.gh", icon: BarChart3, color: "from-blue-500 to-blue-600", description: "Financial management" },
-  { label: "Webmail", url: "https://mail.cagd.gov.gh", icon: Mail, color: "from-red-500 to-red-600", description: "Staff email" },
-  { label: "Payroll System", url: "https://payroll.cagd.gov.gh", icon: CreditCard, color: "from-green-500 to-green-600", description: "Salary & payslips" },
-  { label: "CAGD Website", url: "https://cagd.gov.gh", icon: Globe, color: "from-emerald-500 to-emerald-600", description: "Official website" },
-  { label: "Meeting Rooms", url: "https://booking.cagd.gov.gh", icon: Building, color: "from-purple-500 to-purple-600", description: "Room booking" },
-  { label: "MoF Portal", url: "https://mofep.gov.gh", icon: FileText, color: "from-amber-500 to-amber-600", description: "Ministry of Finance" },
-  { label: "Audit Service", url: "https://ghaudit.org", icon: Shield, color: "from-slate-500 to-slate-600", description: "Ghana Audit Service" },
-  { label: "PFM Handbook", url: "https://mofep.gov.gh/pfm", icon: BookOpen, color: "from-teal-500 to-teal-600", description: "PFM resources" },
-];
+function SystemIcon({ system, muted }: { system: StaffSystem; muted?: boolean }) {
+  const Icon = system.icon;
+  return (
+    <div
+      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+        muted ? "bg-muted" : "bg-primary/10"
+      }`}
+    >
+      <Icon className={`w-5 h-5 ${muted ? "text-muted-foreground" : "text-primary"}`} />
+    </div>
+  );
+}
+
+function SystemRow({ system, index }: { system: StaffSystem; index: number }) {
+  const unavailable = system.status === "not-set";
+
+  const inner = (
+    <>
+      <SystemIcon system={system} muted={unavailable} />
+      <div className="min-w-0 flex-1">
+        <p
+          className={`text-sm font-semibold truncate ${
+            unavailable ? "text-muted-foreground" : "text-foreground group-hover:text-primary transition-colors"
+          }`}
+        >
+          {system.label}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">{system.description}</p>
+      </div>
+
+      {unavailable ? (
+        <span className="shrink-0 text-[10px] font-bold tracking-wide uppercase text-muted-foreground bg-background border border-border rounded px-2 py-1">
+          Not set
+        </span>
+      ) : system.status === "confirm" ? (
+        <span className="shrink-0 text-[10px] font-bold tracking-wide uppercase text-secondary-foreground bg-secondary/25 rounded px-2 py-1">
+          Check
+        </span>
+      ) : (
+        <ArrowUpRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
+      )}
+    </>
+  );
+
+  // No working address — deliberately NOT a link, so nobody lands on a dead page.
+  if (unavailable) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.03 }}
+        className="flex items-center gap-3 p-3.5 rounded-xl border border-dashed border-border bg-muted/30"
+      >
+        {inner}
+        {system.note && <span className="sr-only">{system.note}</span>}
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.a
+      href={system.url ?? undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="group flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border hover:border-primary/40 hover:shadow-md transition-all"
+    >
+      {inner}
+    </motion.a>
+  );
+}
 
 export default function QuickLinks() {
+  const notSet = staffSystems.filter((s) => s.status === "not-set");
+  const needsCheck = staffSystems.filter((s) => s.status === "confirm");
+
   return (
     <div>
-      <h3 className="font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
-        <ExternalLink className="w-4 h-4 text-primary" /> Quick Links
-      </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {links.map((link, i) => (
-          <motion.a
-            key={link.url}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.03 }}
-            className="group flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border hover:border-primary/30 hover:shadow-md transition-all"
-          >
-            <div className={`w-8 h-8 rounded-md bg-gradient-to-br ${link.color} flex items-center justify-center shrink-0`}>
-              <link.icon className="w-4 h-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">{link.label}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{link.description}</p>
-            </div>
-          </motion.a>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h2 className="font-heading text-xl font-bold text-foreground">The eight systems</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Everything the portal links out to. {readySystemCount} of {staffSystems.length} have a
+            working address.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary" aria-hidden="true" />
+            {readySystemCount} ready
+          </span>
+          {notSet.length > 0 && (
+            <span className="border border-dashed border-border rounded-lg px-2.5 py-1.5">
+              {notSet.length} not set
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-2.5">
+        {staffSystems.map((system, i) => (
+          <SystemRow key={system.label} system={system} index={i} />
         ))}
       </div>
+
+      {(notSet.length > 0 || needsCheck.length > 0) && (
+        <div className="mt-5 flex gap-3 rounded-xl bg-primary/5 p-4">
+          <Info className="w-4 h-4 text-primary shrink-0 mt-1" aria-hidden="true" />
+          <div className="text-sm text-foreground leading-relaxed space-y-1.5">
+            {notSet.map((s) => (
+              <p key={s.label}>
+                <strong className="font-semibold">{s.label}</strong> has no working address yet, so
+                it is shown greyed out and cannot be clicked. That is deliberate — it stops you
+                landing on a broken page.
+              </p>
+            ))}
+            {needsCheck.map((s) => (
+              <p key={s.label}>
+                <strong className="font-semibold">{s.label}</strong> is marked{" "}
+                <em className="not-italic font-semibold">Check</em> because its secure connection
+                could not be verified from outside the office. It should open normally on the office
+                network.
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
