@@ -251,13 +251,26 @@ export default function HomePage() {
   ];
 
   /* DB-driven hero slides (fall back to hardcoded) */
-  const { data: dbHeroSlides } = useSiteContent<{ image: string; title: string; subtitle: string; ctaLabel: string; ctaLink: string }[]>("homepage_hero_slides", []);
+  const { data: dbHeroSlides } = useSiteContent<{ image: string; title: string; subtitle: string; ctaLabel: string; ctaLink: string; focalX?: number; focalY?: number }[]>("homepage_hero_slides", []);
   // Accept local paths (/images/...) and Supabase storage URLs (https://db.techtrendi.com/storage/...)
   const isValidHeroImage = (url: string) => url.startsWith("/") || url.startsWith("https://db.techtrendi.com/storage/");
   const validDbSlides = dbHeroSlides
     .filter(s => s.image && s.title && isValidHeroImage(s.image))
-    .map(s => ({ image: s.image, title: s.title, subtitle: s.subtitle, cta: { label: s.ctaLabel, link: s.ctaLink } }));
-  const slides = validDbSlides.length > 0 ? validDbSlides : heroSlides;
+    .map(s => ({
+      image: s.image,
+      title: s.title,
+      subtitle: s.subtitle,
+      cta: { label: s.ctaLabel, link: s.ctaLink },
+      // Where to keep the picture anchored when it is cropped. Set in
+      // Admin -> Hero Slides. Slides saved before that feature existed have
+      // no values, so fall back to dead centre -- the old behaviour.
+      focalX: typeof s.focalX === "number" ? s.focalX : 50,
+      focalY: typeof s.focalY === "number" ? s.focalY : 50,
+    }));
+  // The six built-in slides are centred, which is how they have always looked.
+  const slides = validDbSlides.length > 0
+    ? validDbSlides
+    : heroSlides.map(s => ({ ...s, focalX: 50, focalY: 50 }));
 
   /* Hero auto-advance */
   useEffect(() => {
@@ -375,7 +388,10 @@ export default function HomePage() {
     title: "Controller & Accountant-General",
   });
 
-  const slide = slides[activeSlide] || slides[0] || heroSlides[0];
+  const slide = slides[activeSlide] || slides[0];
+  /* CSS object-position / background-position for this slide's focus point.
+     Admin -> Hero Slides sets it by tapping the picture. */
+  const heroFocus = `${slide.focalX}% ${slide.focalY}%`;
 
   return (
     <>
@@ -397,7 +413,7 @@ export default function HomePage() {
       {/* ═══ 1 · HERO SLIDER ═══════════════════════════════════════ */}
       <section
         className="relative min-h-[100svh] overflow-hidden bg-accent touch-pan-y"
-        style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: heroFocus }}
         onPointerDown={onHeroPointerDown}
         onPointerUp={onHeroPointerUp}
       >
@@ -415,6 +431,7 @@ export default function HomePage() {
               src={slide.image}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: heroFocus }}
               initial={{ scale: 1.0 }}
               animate={{ scale: 1.15 }}
               transition={{ duration: (SLIDE_INTERVAL / 1000) + 1.5, ease: "linear" }}

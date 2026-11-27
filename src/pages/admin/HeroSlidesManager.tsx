@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Image as ImageIcon, ChevronUp, ChevronDown, Upload, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Image as ImageIcon, ChevronUp, ChevronDown, Info, Crosshair, Smartphone, Monitor } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { saveSiteContent } from "@/hooks/useSiteContent";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,9 +26,25 @@ interface HeroSlide {
   subtitle: string;
   ctaLabel: string;
   ctaLink: string;
+  /* Which part of the picture to keep in view when it gets cropped.
+     Percentages, 0-100, where 50/50 is dead centre. Older slides saved
+     before this feature existed have no values, so always read them
+     through focusOf() rather than touching them directly. */
+  focalX?: number;
+  focalY?: number;
 }
 
 const CONTENT_KEY = "homepage_hero_slides";
+
+const EMPTY_SLIDE: HeroSlide = { image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "", focalX: 50, focalY: 50 };
+
+/* A slide saved before the focus feature existed has no focalX/focalY.
+   Treat that as centred, which is exactly how it behaved before. */
+function focusOf(slide: Partial<HeroSlide> | null | undefined) {
+  const x = typeof slide?.focalX === "number" ? slide.focalX : 50;
+  const y = typeof slide?.focalY === "number" ? slide.focalY : 50;
+  return { x, y, css: `${x}% ${y}%` };
+}
 
 export default function HeroSlidesManager() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
@@ -36,7 +52,7 @@ export default function HeroSlidesManager() {
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [form, setForm] = useState<HeroSlide>({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" });
+  const [form, setForm] = useState<HeroSlide>(EMPTY_SLIDE);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,7 +92,7 @@ export default function HeroSlidesManager() {
     toast({ title: editingIndex !== null ? "Updated" : "Added" });
     setDialogOpen(false);
     setEditingIndex(null);
-    setForm({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" });
+    setForm(EMPTY_SLIDE);
   };
 
   const handleDelete = async (index: number) => {
@@ -106,17 +122,30 @@ export default function HeroSlidesManager() {
 
   const openEdit = (index: number) => {
     setEditingIndex(index);
-    setForm(slides[index]);
+    setForm({ ...EMPTY_SLIDE, ...slides[index] });
     setDialogOpen(true);
   };
 
   const openNew = () => {
     setEditingIndex(null);
-    setForm({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" });
+    setForm(EMPTY_SLIDE);
     setDialogOpen(true);
   };
 
+  /* Tap anywhere on the picture to say "keep THIS bit in view".
+     The click target wraps the <img> exactly (block, w-full, natural height),
+     so there is no letterboxing and the percentages map 1:1 onto the image. */
+  const handleFocusTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    setForm((f) => ({ ...f, focalX: Math.round(x), focalY: Math.round(y) }));
+  };
+
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+
+  const focus = focusOf(form);
 
   return (
     <div>
@@ -133,7 +162,7 @@ export default function HeroSlidesManager() {
               Reset to Defaults
             </Button>
           )}
-          <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm({ image: "", title: "", subtitle: "", ctaLabel: "", ctaLink: "" }); } }}>
+          <Dialog modal={false} open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingIndex(null); setForm(EMPTY_SLIDE); } }}>
             <DialogTrigger asChild>
               <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" /> Add Slide</Button>
             </DialogTrigger>
@@ -154,7 +183,12 @@ export default function HeroSlidesManager() {
                   {/* Current image preview */}
                   {form.image && (
                     <div className="relative rounded-lg overflow-hidden border border-border mb-3">
-                      <img src={form.image} alt="Selected" className="w-full h-32 object-cover" />
+                      <img
+                        src={form.image}
+                        alt="Selected"
+                        className="w-full h-32 object-cover"
+                        style={{ objectPosition: focus.css }}
+                      />
                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 truncate">{form.image}</div>
                       <button
                         type="button"
@@ -199,6 +233,85 @@ export default function HeroSlidesManager() {
                     </>
                   )}
                 </div>
+
+                {/* ══ Which part of the picture to show ══════════════════ */}
+                {form.image && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Crosshair className="w-4 h-4 text-primary shrink-0" />
+                      <Label className="mb-0">Which part should show on a phone?</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      A phone screen is tall and narrow, so it can only show a slice of a wide
+                      picture. <strong>Tap the important part</strong> — a face, a building, the
+                      Minister — and we keep that spot in view on every screen size.
+                    </p>
+
+                    <div
+                      className="relative w-full cursor-crosshair rounded-lg overflow-hidden border border-border select-none"
+                      onClick={handleFocusTap}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Tap the important part of the picture"
+                    >
+                      <img src={form.image} alt="" className="block w-full h-auto pointer-events-none" draggable={false} />
+                      {/* Crosshair marker */}
+                      <div
+                        className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary border-[3px] border-white shadow-lg pointer-events-none"
+                        style={{ left: `${focus.x}%`, top: `${focus.y}%` }}
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-black/55 text-white text-[11px] px-2 py-1 pointer-events-none">
+                        Tap anywhere on this picture
+                      </div>
+                    </div>
+
+                    {/* Live previews */}
+                    <div className="grid grid-cols-[1fr_auto] gap-3 mt-3 items-start">
+                      <div>
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                          <Monitor className="w-3.5 h-3.5" /> On a computer
+                        </p>
+                        <div className="rounded-md overflow-hidden border border-border bg-muted">
+                          <img
+                            src={form.image}
+                            alt=""
+                            className="w-full aspect-video object-cover"
+                            style={{ objectPosition: focus.css }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                          <Smartphone className="w-3.5 h-3.5" /> On a phone
+                        </p>
+                        <div className="rounded-md overflow-hidden border border-border bg-muted w-[76px]">
+                          <img
+                            src={form.image}
+                            alt=""
+                            className="w-full aspect-[9/19] object-cover"
+                            style={{ objectPosition: focus.css }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        Focus point: {focus.x}% across, {focus.y}% down
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setForm({ ...form, focalX: 50, focalY: 50 })}
+                      >
+                        Back to centre
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <Label>Title *</Label>
                   <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Slide heading" />
@@ -253,31 +366,50 @@ export default function HeroSlidesManager() {
         </div>
       ) : (
         <div className="space-y-3">
-          {slides.map((slide, i) => (
-            <div key={i} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
-              <div className="flex flex-col gap-0.5">
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveSlide(i, -1)} disabled={i === 0}>
-                  <ChevronUp className="w-3 h-3" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveSlide(i, 1)} disabled={i === slides.length - 1}>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
+          {slides.map((slide, i) => {
+            const f = focusOf(slide);
+            const centred = f.x === 50 && f.y === 50;
+            return (
+              <div key={i} className="flex items-center gap-3 bg-card border border-border rounded-lg p-3">
+                <div className="flex flex-col gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveSlide(i, -1)} disabled={i === 0}>
+                    <ChevronUp className="w-3 h-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveSlide(i, 1)} disabled={i === slides.length - 1}>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </div>
+                {/* Thumbnail shows the phone-shaped crop, so the list itself tells you
+                    whether this slide is framed sensibly on a phone. */}
+                <div className="shrink-0 w-14 h-[74px] rounded-md overflow-hidden bg-muted border border-border">
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    style={{ objectPosition: f.css }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{slide.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{slide.subtitle}</p>
+                  {slide.ctaLabel && <p className="text-xs text-primary mt-0.5">{slide.ctaLabel} → {slide.ctaLink}</p>}
+                  <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{slide.image}</p>
+                  <p className="text-[10px] mt-0.5 flex items-center gap-1">
+                    <Smartphone className="w-3 h-3 shrink-0 text-muted-foreground/60" />
+                    {centred ? (
+                      <span className="text-muted-foreground/60">Phone focus: centre (not set)</span>
+                    ) : (
+                      <span className="text-primary">Phone focus: {f.x}% across, {f.y}% down</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" title="Edit slide and set phone focus" onClick={() => openEdit(i)}><Pencil className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(i)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                </div>
               </div>
-              <div className="shrink-0 w-24 h-14 rounded-md overflow-hidden bg-muted">
-                <img src={slide.image} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{slide.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{slide.subtitle}</p>
-                {slide.ctaLabel && <p className="text-xs text-primary mt-0.5">{slide.ctaLabel} → {slide.ctaLink}</p>}
-                <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{slide.image}</p>
-              </div>
-              <div className="flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => handleDelete(i)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
