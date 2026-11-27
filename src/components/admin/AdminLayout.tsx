@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/auditLog";
 import { cn } from "@/lib/utils";
+import RouteFallback from "@/components/RouteFallback";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
@@ -414,7 +415,11 @@ export default function AdminLayout() {
       <div ref={contentRef} className="flex-1 overflow-y-auto">
         {/* Add top padding on mobile for fixed header */}
         <main className="p-4 md:p-6 pt-20 lg:pt-6">
-          <Outlet />
+          {/* Each admin screen loads on demand; keep the sidebar in place
+              while it arrives. */}
+          <Suspense fallback={<RouteFallback />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

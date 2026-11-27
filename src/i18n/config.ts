@@ -23,4 +23,16 @@ i18n
     },
   });
 
+/* Keep <html lang="..."> in step with the chosen language.
+   It was hard-coded to "en" in index.html, so a visitor reading the site in
+   Twi still had a page that announced itself as English. Screen readers pick
+   their pronunciation from this attribute, and search engines read it too. */
+function syncHtmlLang(lng?: string) {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = (lng || i18n.language || "en").split("-")[0];
+}
+
+syncHtmlLang();
+i18n.on("languageChanged", syncHtmlLang);
+
 export default i18n;

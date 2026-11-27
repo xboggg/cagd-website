@@ -23,7 +23,11 @@
 
     /* Muted */
     --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Was 47% lightness, which measured 4.31:1 against the grey panels this
+       text sits on — just under the 4.5:1 the accessibility standard asks
+       for. 43% measures 4.98:1 there and 5.45:1 on white. Same colour, a
+       shade deeper; nothing else changes. */
+    --muted-foreground: 215 16% 43%;
 
     /* Dark Blue #001a57 → hsl(222, 100%, 17%) */
     --accent: 222 100% 17%;
@@ -126,6 +130,29 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+  }
+
+  /* A visible outline for anyone moving through the page with the Tab key.
+     Plenty of links here had no focus style of their own, which makes the
+     site effectively unusable without a mouse. :focus-visible only shows
+     for keyboard use, so mouse clicks look exactly as they did. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Respect "reduce motion" for anything animated in plain CSS.
+     Framer Motion is handled separately by <MotionConfig reducedMotion="user">
+     in App.tsx. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

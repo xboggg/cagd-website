@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { motion, AnimatePresence, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useInView, useReducedMotion } from "framer-motion";
 import {
-  ArrowRight, FileText, Users, MapPin, BarChart3, Shield, Landmark, Globe,
-  CreditCard, BookOpen, Calendar, ExternalLink, Building2, CheckCircle2,
+  ArrowRight, FileText, Users, MapPin, Landmark, Globe,
+  CreditCard, Calendar, ExternalLink, Building2, CheckCircle2,
   Clock, LayoutGrid, Sparkles, Briefcase, Monitor, Receipt, Eye,
   TrendingUp, Quote, User, Download, Newspaper, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SEOHead from "@/components/SEOHead";
@@ -23,6 +22,13 @@ import { useSiteContent } from "@/hooks/useSiteContent";
    ═══════════════════════════════════════════════════════════════════ */
 
 const SLIDE_INTERVAL = 7000;
+
+/* How tall the hero is.
+   It used to be min-h-[100svh] — the entire phone screen — which left a lot
+   of empty space above and below the words and, worse, gave a visitor no clue
+   that anything existed below it. Stopping short lets the next section peek
+   in, which is the whole cue to scroll. */
+const HERO_HEIGHT = "min-h-[76svh] sm:min-h-[80svh] lg:min-h-[88svh]";
 
 /* ═══════════════════════════════════════════════════════════════════
    HELPER COMPONENTS
@@ -38,9 +44,23 @@ function FadeInSection({ children, className = "", delay = 0 }: { children: Reac
   );
 }
 
-function AnimatedCounter({ target, suffix = "", label, icon: Icon }: { target: number; suffix?: string; label: string; icon: React.ElementType }) {
+/**
+ * One of the six figures in the "CAGD at a glance" strip.
+ *
+ * It counts up once, the first time it comes into view. The previous version
+ * of this sat on an auto-playing video, inside a ring that pulsed forever;
+ * this one is a definition list entry, which is what it actually is, and it
+ * stops animating when it is done.
+ */
+function CompactStat({ target, suffix = "", label, icon: Icon, delay = 0 }: {
+  target: number;
+  suffix?: string;
+  label: string;
+  icon: React.ElementType;
+  delay?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const inView = useInView(ref, { once: true, margin: "-60px" });
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -61,48 +81,18 @@ function AnimatedCounter({ target, suffix = "", label, icon: Icon }: { target: n
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6 }}
-      className="text-center"
+      transition={{ duration: 0.5, delay }}
+      className="flex flex-col text-center"
     >
-      <div className="relative inline-flex items-center justify-center w-16 h-16 mb-4">
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-secondary/40"
-          animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0, 0.4] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-          <Icon className="w-6 h-6 text-secondary" />
-        </div>
-      </div>
-      <div className="text-4xl md:text-5xl font-heading font-bold text-white">{count}{suffix}</div>
-      <div className="text-white/60 text-sm mt-2 font-medium">{label}</div>
-    </motion.div>
-  );
-}
-
-function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const handleMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: y * -8, y: x * 8 });
-  }, []);
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={handleMove}
-      onMouseLeave={() => setTilt({ x: 0, y: 0 })}
-      animate={{ rotateX: tilt.x, rotateY: tilt.y }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      style={{ perspective: 1000, transformStyle: "preserve-3d" }}
-      className={className}
-    >
-      {children}
+      <Icon className="order-1 mx-auto mb-2 h-5 w-5 text-primary" aria-hidden="true" />
+      {/* A definition list wants the term before the description, so the
+          label comes first in the markup and is placed below with `order`. */}
+      <dt className="order-3 mx-auto mt-1.5 max-w-[11rem] text-xs leading-snug text-muted-foreground">{label}</dt>
+      <dd className="order-2 font-heading text-2xl font-extrabold leading-none text-foreground md:text-3xl">
+        {count}{suffix}
+      </dd>
     </motion.div>
   );
 }
@@ -170,6 +160,9 @@ function MobileSlider({ children, className = "", itemCount }: {
 
 export default function HomePage() {
   const { t } = useTranslation();
+  /* True when the visitor has asked their phone or computer to keep motion
+     down. Framer reads the operating-system setting for us. */
+  const reduceMotion = useReducedMotion();
   const [activeSlide, setActiveSlide] = useState(0);
   const [slideKey, setSlideKey] = useState(0);
   const [eventCountdown, setEventCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -223,16 +216,9 @@ export default function HomePage() {
     { target: 139, suffix: "+", label: t("stats.yearsOfService"), icon: Clock },
   ];
 
-  const coreFunctions = [
-    { icon: CreditCard, title: t("coreFunctions.revenueCollection"), desc: t("coreFunctions.revenueCollectionDesc"), gradient: "from-emerald-500 to-green-600" },
-    { icon: Shield, title: t("coreFunctions.secureCustody"), desc: t("coreFunctions.secureCustodyDesc"), gradient: "from-blue-500 to-indigo-600" },
-    { icon: Users, title: t("coreFunctions.disbursements"), desc: t("coreFunctions.disbursementsDesc"), gradient: "from-violet-500 to-purple-600" },
-    { icon: Landmark, title: t("coreFunctions.accountEstablishment"), desc: t("coreFunctions.accountEstablishmentDesc"), gradient: "from-amber-500 to-orange-600" },
-    { icon: BookOpen, title: t("coreFunctions.financialReporting"), desc: t("coreFunctions.financialReportingDesc"), gradient: "from-rose-500 to-pink-600" },
-    { icon: BarChart3, title: t("coreFunctions.accountingStandards"), desc: t("coreFunctions.accountingStandardsDesc"), gradient: "from-cyan-500 to-teal-600" },
-    { icon: Globe, title: t("coreFunctions.systemsDevelopment"), desc: t("coreFunctions.systemsDevelopmentDesc"), gradient: "from-secondary to-yellow-600" },
-    { icon: FileText, title: t("coreFunctions.bankingAuthority"), desc: t("coreFunctions.bankingAuthorityDesc"), gradient: "from-primary to-emerald-600" },
-  ];
+  /* The eight Core Functions cards that used to be listed here now live only
+     on their own page, /about/core-functions, which the section below links
+     to. Nothing was deleted from the site — it moved off the front page. */
 
   const divisionsData = [
     { title: t("nav.financeAdmin"), slug: "finance-administration", icon: Briefcase, desc: t("home.divFaDesc"), dcag: "Mrs. Emelia Osei Derkyi", directorates: 5, gradient: "from-emerald-600 to-green-500", glow: "hover:shadow-emerald-500/25" },
@@ -299,14 +285,9 @@ export default function HomePage() {
       : (activeSlide - 1 + slides.length) % slides.length);
   };
 
-  /* Parallax refs */
-  const countersRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: countersScroll } = useScroll({ target: countersRef, offset: ["start end", "end start"] });
-  const countersY = useTransform(countersScroll, [0, 1], ["-10%", "10%"]);
-
-  const quoteRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: quoteScroll } = useScroll({ target: quoteRef, offset: ["start end", "end start"] });
-  const quoteY = useTransform(quoteScroll, [0, 1], ["-15%", "15%"]);
+  /* The two parallax backgrounds that used to be tracked here are gone with
+     the sections that used them. Each one ran a scroll listener and moved a
+     full-screen image on every frame. */
 
   /* Supabase queries */
   const { data: latestNews = [] } = useQuery({
@@ -412,7 +393,7 @@ export default function HomePage() {
 
       {/* ═══ 1 · HERO SLIDER ═══════════════════════════════════════ */}
       <section
-        className="relative min-h-[100svh] overflow-hidden bg-accent touch-pan-y"
+        className={cn("relative overflow-hidden bg-accent touch-pan-y", HERO_HEIGHT)}
         style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: heroFocus }}
         onPointerDown={onHeroPointerDown}
         onPointerUp={onHeroPointerUp}
@@ -431,10 +412,18 @@ export default function HomePage() {
               src={slide.image}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
-              style={{ objectPosition: heroFocus }}
+              /* The slow zoom now grows OUT OF the focus point instead of the
+                 middle of the picture, so the spot chosen in Admin -> Hero
+                 Slides stays in view for the whole seven seconds. */
+              style={{ objectPosition: heroFocus, transformOrigin: heroFocus }}
               initial={{ scale: 1.0 }}
-              animate={{ scale: 1.15 }}
+              animate={{ scale: reduceMotion ? 1.0 : 1.08 }}
               transition={{ duration: (SLIDE_INTERVAL / 1000) + 1.5, ease: "linear" }}
+              /* This is the biggest picture on the page and the first thing a
+                 visitor sees, so ask the browser to fetch it ahead of the rest. */
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
               onError={(e) => {
                 // Fall back to local hero image if image fails to load
                 const localFallback = `/images/hero/hero-${(activeSlide % 6) + 1}.webp`;
@@ -443,13 +432,21 @@ export default function HomePage() {
                 }
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/85 to-accent/75" />
+            {/* ── Readability scrim ──────────────────────────────────
+                This used to be a flat 85%/75% brand wash across the whole
+                picture, which made every hero photograph read as a plain
+                green panel. It is now shaped: heaviest on the left where the
+                words sit, and thin on the right so the photograph is actually
+                visible. Two plain gradients, no blur — cheap to paint on a
+                low-end phone.                                            */}
+            <div className="absolute inset-0 bg-gradient-to-r from-accent/85 via-accent/55 to-accent/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-accent/75 via-transparent to-accent/45" />
           </motion.div>
         </AnimatePresence>
 
         {/* Hero content */}
-        <div className="relative z-10 min-h-[100svh] flex items-center">
-          <div className="container py-32 md:py-40">
+        <div className={cn("relative z-10 flex items-center", HERO_HEIGHT)}>
+          <div className="container pt-28 pb-24 md:pt-32 md:pb-28">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide}
@@ -461,12 +458,16 @@ export default function HomePage() {
               >
                 {/* Staggered word reveal */}
                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-[1.1]">
+                  {/* Words rise in one at a time. They used to un-blur as
+                      well; animated blur is one of the most expensive things
+                      a phone can be asked to draw, and it was happening on
+                      every word during the very first paint. */}
                   {(slide.title || "").split(" ").map((word, i) => (
                     <motion.span
                       key={i}
-                      initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      transition={{ delay: 0.2 + i * 0.08, duration: 0.5, ease: "easeOut" }}
+                      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 + i * 0.06, duration: 0.45, ease: "easeOut" }}
                       className="inline-block mr-[0.3em]"
                     >
                       {word}
@@ -495,11 +496,35 @@ export default function HomePage() {
                     </Button>
                   </Link>
                   <Link to="/contact">
-                    <Button className="w-full sm:w-auto rounded-full px-8 py-3 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading backdrop-blur-sm">
+                    <Button className="w-full sm:w-auto rounded-full px-8 py-3 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading">
                       {t("footer.contactUs")}
                     </Button>
                   </Link>
                 </motion.div>
+
+                {/* The three credibility figures, on phones.
+                    They used to be desktop-only (hidden lg:flex), so the
+                    visitors who make up most of our traffic never saw them. */}
+                <motion.dl
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3, duration: 0.5 }}
+                  className="lg:hidden mt-8 flex items-center gap-5 border-t border-white/20 pt-5"
+                >
+                  {[
+                    { value: "703+", label: t("home.mdas") },
+                    { value: "16", label: t("home.regions") },
+                    { value: "1885", label: t("home.est") },
+                  ].map((stat) => (
+                    <div key={stat.label}>
+                      <dt className="sr-only">{stat.label}</dt>
+                      <dd>
+                        <span className="block font-heading font-bold text-secondary text-lg leading-none">{stat.value}</span>
+                        <span className="block text-white/70 text-[11px] mt-1 leading-tight">{stat.label}</span>
+                      </dd>
+                    </div>
+                  ))}
+                </motion.dl>
               </motion.div>
             </AnimatePresence>
 
@@ -544,8 +569,11 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Dot navigation */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
+        {/* Dot navigation.
+            Lifted clear of the bottom of the screen: at bottom-8 these sat
+            inside the home-bar gesture strip on a modern phone, so a tap
+            often went to the operating system instead of the dot. */}
+        <div className="absolute bottom-16 sm:bottom-10 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
           {slides.map((_, i) => (
             <button
               key={i}
@@ -559,9 +587,76 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Decorative blurs */}
-        <div className="absolute top-20 left-10 w-40 h-40 rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-32 right-20 w-56 h-56 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        {/* Two large blurred circles used to sit here. They were drawn at 5%
+            opacity UNDERNEATH the scrim, so nothing of them was ever visible,
+            while still costing a phone's graphics chip two full-screen blur
+            passes on first paint. Removed. */}
+      </section>
+
+      {/* ═══ 2 · WHAT DO YOU NEED? ═════════════════════════════════
+          The first thing below the hero, deliberately.
+
+          Think about who actually arrives here: a government worker checking
+          when salaries are paid, an accountant hunting a circular, somebody
+          who needs a form, a supplier chasing a payment. Before this section
+          existed they had to scroll past fourteen cards explaining how CAGD
+          is organised before reaching anything they could act on.
+
+          Every label here is the site's own wording for that page — no
+          invented names.                                              */}
+      <section
+        aria-labelledby="tasks-heading"
+        className="relative z-10 border-b border-border bg-background py-10 md:py-14"
+      >
+        <div className="container">
+          <FadeInSection className="mb-6 md:mb-8">
+            <h2 id="tasks-heading" className="font-heading text-2xl md:text-3xl font-extrabold text-foreground">
+              {t("home.tasksTitle")}
+            </h2>
+            <p className="mt-1.5 text-sm md:text-base text-muted-foreground">{t("home.tasksDesc")}</p>
+          </FadeInSection>
+
+          <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            {[
+              { icon: FileText, label: t("nav.reports"), desc: t("home.taskReportsDesc"), to: "/reports" },
+              { icon: Newspaper, label: t("nav.treasuryNews"), desc: t("home.taskTreasuryDesc"), to: "/news/treasury" },
+              { icon: Download, label: t("home.taskForms"), desc: t("home.taskFormsDesc"), to: "/resources/forms" },
+              { icon: Globe, label: t("footer.eServices"), desc: t("home.taskEServicesDesc"), to: "#e-services", anchor: true },
+              { icon: MapPin, label: t("home.taskOffices"), desc: t("home.taskOfficesDesc"), to: "/contact/offices" },
+              { icon: Building2, label: t("footer.contactUs"), desc: t("home.taskContactDesc"), to: "/contact" },
+            ].map((task, i) => {
+              const inner = (
+                <>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <task.icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-heading text-sm font-bold leading-snug text-foreground sm:text-base">
+                      {task.label}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-snug text-muted-foreground sm:text-xs">
+                      {task.desc}
+                    </span>
+                  </span>
+                </>
+              );
+              /* Big, obvious, finger-sized targets — at least 96px tall. */
+              const tileClass =
+                "group flex h-full min-h-[96px] items-start gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:p-5";
+              return (
+                <li key={task.label}>
+                  <FadeInSection delay={i * 0.05} className="h-full">
+                    {task.anchor ? (
+                      <a href={task.to} className={tileClass}>{inner}</a>
+                    ) : (
+                      <Link to={task.to} className={tileClass}>{inner}</Link>
+                    )}
+                  </FadeInSection>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </section>
 
       {/* ═══ 3 · ABOUT CAGD ════════════════════════════════════════ */}
@@ -634,131 +729,120 @@ export default function HomePage() {
               </div>
             </FadeInSection>
           </div>
-        </div>
-      </section>
 
-      {/* ═══ 4 · ANIMATED COUNTERS — PARALLAX ══════════════════════ */}
-      <section ref={countersRef} className="relative py-20 md:py-28 overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="/images/hero/hero-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-accent/85" />
-        <div className="container relative z-10">
-          <FadeInSection className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">{t("home.cagdAtGlance")}</h2>
-            <p className="text-white/60 max-w-2xl mx-auto">{t("home.keyFiguresDesc")}</p>
-          </FadeInSection>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-8 md:gap-6">
-            {statsData.map((s, i) => (
-              <FadeInSection key={s.label} delay={i * 0.1}>
-                <AnimatedCounter target={s.target} suffix={s.suffix} label={s.label} icon={s.icon} />
-              </FadeInSection>
-            ))}
+          {/* ── The six figures ──────────────────────────────────────
+              These used to be a whole section of their own, on top of an
+              auto-playing 512 kB video, with every figure wrapped in a
+              pulsing ring. Same numbers, one strip, no video.        */}
+          <div className="mt-16 rounded-3xl border border-border bg-muted/40 px-5 py-8 md:px-10 md:py-10">
+            <h2 className="sr-only">{t("home.cagdAtGlance")}</h2>
+            <dl className="grid grid-cols-3 gap-y-8 md:grid-cols-6 md:gap-4">
+              {statsData.map((s, i) => (
+                <CompactStat
+                  key={s.label}
+                  target={s.target}
+                  suffix={s.suffix}
+                  label={s.label}
+                  icon={s.icon}
+                  delay={i * 0.06}
+                />
+              ))}
+            </dl>
           </div>
+
+          {/* ── The Controller & Accountant-General's words ──────────
+              Previously a 24rem-tall parallax section with a background
+              photograph and a pulsing quote mark. It is a quotation; it
+              reads perfectly well as one.                            */}
+          <FadeInSection className="mt-12">
+            <figure className="mx-auto max-w-3xl border-l-4 border-secondary pl-5 md:pl-7">
+              <Quote className="mb-3 h-7 w-7 text-secondary/60" aria-hidden="true" />
+              <blockquote className="text-base italic leading-relaxed text-muted-foreground md:text-lg">
+                {quoteData.text}
+              </blockquote>
+              <figcaption className="mt-4 flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-5 w-5 text-primary" aria-hidden="true" />
+                </span>
+                <span>
+                  <span className="block font-heading font-bold text-foreground">{quoteData.author}</span>
+                  <span className="block text-sm text-muted-foreground">{quoteData.title}</span>
+                </span>
+              </figcaption>
+            </figure>
+          </FadeInSection>
         </div>
       </section>
 
-      {/* ═══ 5 · CORE FUNCTIONS — 3D CARDS ═════════════════════════ */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="container">
-          <FadeInSection className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 text-sm font-heading font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
-              <Shield className="w-4 h-4" /> {t("home.legalMandate")}
-            </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-4">{t("coreFunctions.title")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">{t("home.mandateIntro")}</p>
-          </FadeInSection>
-          <MobileSlider itemCount={coreFunctions.length} className="flex overflow-x-auto snap-x snap-mandatory scroll-pl-4 gap-4 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4 md:gap-6">
-            {coreFunctions.map((fn, i) => (
-              <FadeInSection key={fn.title} delay={i * 0.08} className="snap-start flex-shrink-0 w-[calc(100vw-2rem)] md:w-auto">
-                <Tilt3DCard className="h-full">
-                  <div className="bg-card border border-border rounded-2xl p-6 h-full hover:shadow-xl transition-shadow duration-300 group">
-                    <motion.div
-                      className={cn("h-14 w-14 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-5 shadow-lg", fn.gradient)}
-                      whileHover={{ rotate: [0, -12, 12, -6, 6, 0], scale: 1.15 }}
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{
-                        y: { duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 },
-                        rotate: { duration: 0.6 },
-                        scale: { duration: 0.3 },
-                      }}
-                    >
-                      <fn.icon className="h-7 w-7 text-white" />
-                    </motion.div>
-                    <h3 className="font-heading font-bold text-base mb-2 text-foreground">{fn.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{fn.desc}</p>
-                  </div>
-                </Tilt3DCard>
-              </FadeInSection>
-            ))}
-          </MobileSlider>
-        </div>
-      </section>
+      {/* The six figures moved up into the About section as a strip.
+          The auto-playing 512 kB background video that sat behind them is
+          gone with it — it downloaded on every single visit. */}
 
-      {/* ═══ 6 · DIVISIONS SHOWCASE ════════════════════════════════ */}
-      <section className="py-16 md:py-24">
+      {/* ═══ 4 · HOW CAGD IS ORGANISED ══════════════════════════════
+          This replaces two full sections — eight "Core Functions" cards and
+          six "Divisions" cards, fourteen in all, roughly three phone screens
+          of reading about how the department is arranged before a visitor
+          reached anything they could use.
+
+          Both those pages still exist and are still linked from here and from
+          the menu. What changed is that the homepage now points at them
+          instead of reciting them.                                   */}
+      <section aria-labelledby="structure-heading" className="bg-muted/30 py-16 md:py-20">
         <div className="container">
-          <FadeInSection className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 text-sm font-heading font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
-              <LayoutGrid className="w-4 h-4" /> {t("nav.ourStructure")}
+          <FadeInSection className="mb-9 max-w-2xl">
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 font-heading text-sm font-semibold text-primary">
+              <LayoutGrid className="h-4 w-4" aria-hidden="true" /> {t("nav.ourStructure")}
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground mb-4">{t("ourStructure.sixDivisions")}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">{t("ourStructure.description")}</p>
+            <h2 id="structure-heading" className="mb-3 font-heading text-2xl font-extrabold text-foreground md:text-3xl">
+              {t("home.whatWeDo")}
+            </h2>
+            <p className="text-muted-foreground">{t("home.whatWeDoDesc")}</p>
           </FadeInSection>
-          <MobileSlider itemCount={divisionsData.length} className="flex overflow-x-auto snap-x snap-mandatory scroll-pl-4 gap-4 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-3 md:gap-6">
+
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {divisionsData.map((div, i) => (
-              <FadeInSection key={div.slug} delay={i * 0.1} className="snap-start flex-shrink-0 w-[calc(100vw-2rem)] md:w-auto">
-                <Link to={`/divisions/${div.slug}`} className="block group">
-                  <motion.div
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className={cn("relative bg-card border border-border rounded-2xl p-6 h-full overflow-hidden transition-shadow duration-300 shadow-lg", div.glow)}
+              <li key={div.slug}>
+                <FadeInSection delay={i * 0.05} className="h-full">
+                  <Link
+                    to={`/divisions/${div.slug}`}
+                    className="group flex h-full items-center gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   >
-                    <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r", div.gradient)} />
-                    <div className="flex items-start gap-4">
-                      <motion.div
-                        animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
-                        transition={{ duration: 4, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
-                        className={cn("h-14 w-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg shrink-0", div.gradient)}
-                      >
-                        <div.icon className="h-7 w-7 text-white" />
-                      </motion.div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-heading font-bold text-foreground mb-1 group-hover:text-primary transition-colors">{div.title}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">{div.desc}</p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="bg-muted px-2 py-1 rounded-md font-medium">{div.directorates} {t("ourStructure.directorates")}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">{t("home.dcagLabel")}: {div.dcag}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                      <span className="text-sm font-heading font-semibold text-primary">{t("common.exploreProject")}</span>
-                      <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </motion.div>
-                </Link>
-              </FadeInSection>
+                    <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm", div.gradient)}>
+                      <div.icon className="h-6 w-6 text-white" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-heading font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+                        {div.title}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {t("home.dcagLabel")}: {div.dcag}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </Link>
+                </FadeInSection>
+              </li>
             ))}
-          </MobileSlider>
-          <FadeInSection delay={0.6} className="text-center mt-10">
+          </ul>
+
+          <FadeInSection delay={0.35} className="mt-8 flex flex-wrap gap-3">
+            <Link to="/about/core-functions">
+              <Button variant="outline" className="group h-auto rounded-full px-6 py-2.5 font-heading font-semibold">
+                {t("coreFunctions.title")}
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              </Button>
+            </Link>
             <Link to="/about/structure">
-              <Button variant="outline" className="rounded-full px-8 h-auto py-3 font-heading font-semibold group">
-                {t("nav.ourStructure")} <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button variant="outline" className="group h-auto rounded-full px-6 py-2.5 font-heading font-semibold">
+                {t("nav.ourStructure")}
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </Button>
             </Link>
           </FadeInSection>
         </div>
       </section>
 
-      {/* ═══ 7 · E-SERVICES ════════════════════════════════════════ */}
+      {/* ═══ 5 · E-SERVICES ════════════════════════════════════════ */}
       <section id="e-services" className="relative py-16 md:py-24 bg-accent overflow-hidden">
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <div className="absolute top-10 left-10 w-40 h-40 border border-white rounded-full" />
@@ -773,11 +857,13 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">{t("footer.eServices")}</h2>
             <p className="text-white/60 max-w-2xl mx-auto">{t("home.eServicesDesc")}</p>
           </FadeInSection>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Two to a row on a phone, not one. Four full-width cards made
+              this single section a screen and a half tall on its own. */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {eServicesList.map((s, i) => (
               <FadeInSection key={s.title} delay={i * 0.1}>
                 <a href={s.url} target="_blank" rel="noreferrer" className="block group">
-                  <div className="relative bg-white/[0.08] backdrop-blur-sm border border-white/10 rounded-2xl p-6 h-full hover:bg-white/[0.14] hover:border-secondary/30 hover:shadow-[0_8px_40px_rgba(209,173,59,0.15)] hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out overflow-hidden">
+                  <div className="relative bg-white/[0.08] border border-white/10 rounded-2xl p-4 sm:p-6 h-full hover:bg-white/[0.14] hover:border-secondary/30 hover:shadow-[0_8px_40px_rgba(209,173,59,0.15)] hover:-translate-y-2 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-out overflow-hidden">
                     <motion.div
                       animate={{
                         boxShadow: [
@@ -787,15 +873,15 @@ export default function HomePage() {
                         ],
                       }}
                       transition={{ duration: 3, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
-                      className={cn("relative h-14 w-14 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300", s.color)}
+                      className={cn("relative h-11 w-11 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-3 sm:mb-5 group-hover:scale-110 transition-transform duration-300", s.color)}
                     >
                       <s.icon className="h-7 w-7 text-white" />
                     </motion.div>
-                    <h3 className="font-heading font-bold text-lg text-white mb-2 flex items-center gap-2">
+                    <h3 className="font-heading font-bold text-base sm:text-lg text-white mb-2 flex items-center gap-2">
                       {s.title}
                       <ExternalLink className="h-4 w-4 text-white/40 group-hover:text-secondary group-hover:translate-x-1 transition-all duration-300" />
                     </h3>
-                    <p className="text-sm text-white/60 leading-relaxed group-hover:text-white/75 transition-colors duration-300">{s.desc}</p>
+                    <p className="text-xs sm:text-sm text-white/70 leading-relaxed group-hover:text-white/90 transition-colors duration-300">{s.desc}</p>
                   </div>
                 </a>
               </FadeInSection>
@@ -804,7 +890,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 8 · LATEST NEWS ══════════════════════════════════════ */}
+      {/* ═══ 6 · LATEST NEWS ══════════════════════════════════════ */}
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="container">
           <FadeInSection>
@@ -871,7 +957,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 9 · EVENTS & DIGEST — 2 COLUMNS ════════════════════════ */}
+      {/* ═══ 7 · EVENTS & DIGEST — 2 COLUMNS ════════════════════════ */}
       <section className="py-16 md:py-24">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-10">
@@ -1165,79 +1251,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ 10 · LEADERSHIP QUOTE — PARALLAX ══════════════════════ */}
-      <section ref={quoteRef} className="relative py-24 md:py-32 overflow-hidden">
-        <motion.div className="absolute inset-0" style={{ y: quoteY }}>
-          <img src="/images/hero/hero-5.webp" alt="" className="w-full h-[140%] object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-accent/90" />
-        </motion.div>
-        <div className="container relative z-10 text-center max-w-4xl mx-auto">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="mb-8"
-          >
-            <Quote className="w-16 h-16 text-secondary/40 mx-auto" />
-          </motion.div>
-          <FadeInSection>
-            <p className="text-lg sm:text-xl md:text-2xl text-white/90 italic leading-relaxed font-light">
-              "{quoteData.text}"
-            </p>
-            <div className="mt-8 flex items-center justify-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
-                <User className="w-6 h-6 text-secondary" />
-              </div>
-              <div className="text-left">
-                <p className="font-heading font-bold text-secondary">{quoteData.author}</p>
-                <p className="text-white/50 text-sm">{quoteData.title}</p>
-              </div>
-            </div>
-          </FadeInSection>
-        </div>
-      </section>
+      {/* The Controller & Accountant-General's quotation moved up into the
+          About section. It is still edited in the same place:
+          Admin -> Homepage. */}
 
-      {/* ═══ 11 · PARTNERS & AFFILIATES ════════════════════════════ */}
+      {/* ═══ 8 · PARTNERS & AFFILIATES ═════════════════════════════ */}
       <PartnersCarousel />
 
-      {/* ═══ 12 · CALL TO ACTION ═══════════════════════════════════ */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-br from-primary via-primary/90 to-accent overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-secondary/10 blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-cta/10 blur-[80px]" />
-        </div>
-        <div className="container relative z-10 text-center">
-          <FadeInSection>
-            <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">{t("common.learnMore")}</h2>
-            <p className="text-white/70 max-w-2xl mx-auto mb-10 text-lg">
-              {t("home.ctaDesc")}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link to="/contact">
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      "0 0 0px rgba(255,94,20,0)",
-                      "0 0 30px rgba(255,94,20,0.4)",
-                      "0 0 0px rgba(255,94,20,0)",
-                    ],
-                  }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="rounded-full"
-                >
-                  <Button className="bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-10 py-4 h-auto font-heading font-bold text-lg shadow-xl">
-                    {t("footer.contactUs")} <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </motion.div>
-              </Link>
-              <Link to="/about/structure">
-                <Button className="rounded-full px-10 py-4 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading font-semibold text-lg backdrop-blur-sm">
-                  {t("ourStructure.ourDivisions")}
-                </Button>
-              </Link>
-            </div>
-          </FadeInSection>
-        </div>
-      </section>
+      {/* The closing "Learn More" panel was the third sign-off section in a
+          row — after the quotation and the partners strip — and asked for
+          nothing a visitor had come to do. Contact Us is the sixth tile at
+          the top of the page, and it is in the footer on every page. */}
     </>
   );
 }
