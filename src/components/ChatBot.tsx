@@ -206,15 +206,23 @@ export default function ChatBot() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
 
-  // Callout bubble — shown after 2s, dismissible, remembered in localStorage
+  /* Callout bubble — dismissible, remembered in localStorage.
+     It used to appear after 2.2 seconds on every screen size. On a phone
+     that put it straight on top of the page content while the visitor was
+     still reading the first screen. Now:
+       - phones never get it; the round chat button is enough,
+       - on larger screens it waits until the visitor has had a moment,
+       - and it takes itself away after 12 seconds instead of sitting there. */
   const [calloutVisible, setCalloutVisible] = useState(false);
   useEffect(() => {
+    if (isMobile) return;
     try {
       if (localStorage.getItem("cagd_chatbot_callout_v1") === "1") return;
     } catch { /* ignore */ }
-    const t = setTimeout(() => setCalloutVisible(true), 2200);
-    return () => clearTimeout(t);
-  }, []);
+    const show = setTimeout(() => setCalloutVisible(true), 6000);
+    const hide = setTimeout(() => setCalloutVisible(false), 18000);
+    return () => { clearTimeout(show); clearTimeout(hide); };
+  }, [isMobile]);
 
   const dismissCallout = () => {
     setCalloutVisible(false);

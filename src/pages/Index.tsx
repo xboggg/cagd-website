@@ -7,6 +7,7 @@ import {
   CreditCard, Calendar, ExternalLink, Building2, CheckCircle2,
   Clock, LayoutGrid, Sparkles, Briefcase, Monitor, Receipt, Eye,
   TrendingUp, Quote, User, Download, Newspaper, ChevronLeft, ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -23,12 +24,13 @@ import { useSiteContent } from "@/hooks/useSiteContent";
 
 const SLIDE_INTERVAL = 7000;
 
-/* How tall the hero is.
-   It used to be min-h-[100svh] — the entire phone screen — which left a lot
-   of empty space above and below the words and, worse, gave a visitor no clue
-   that anything existed below it. Stopping short lets the next section peek
-   in, which is the whole cue to scroll. */
-const HERO_HEIGHT = "min-h-[76svh] sm:min-h-[80svh] lg:min-h-[88svh]";
+/* The hero fills the whole screen.
+   svh (not vh) is deliberate: on a phone it means the screen as it actually
+   is with the browser bars showing, so the bottom of the hero is never
+   hidden behind them.
+   Because nothing of the next section peeks in at this height, the hero
+   carries its own "scroll" cue at the bottom — see ScrollCue below. */
+const HERO_HEIGHT = "min-h-[100svh]";
 
 /* ═══════════════════════════════════════════════════════════════════
    HELPER COMPONENTS
@@ -417,7 +419,11 @@ export default function HomePage() {
                  Slides stays in view for the whole seven seconds. */
               style={{ objectPosition: heroFocus, transformOrigin: heroFocus }}
               initial={{ scale: 1.0 }}
-              animate={{ scale: reduceMotion ? 1.0 : 1.08 }}
+              /* The zoom is deliberately small. Every percent of zoom is a
+                 percent of the picture pushed off the edge of the screen,
+                 and at full screen height a wide picture is already cropped
+                 hard. 1.04 keeps the movement without eating the edges. */
+              animate={{ scale: reduceMotion ? 1.0 : 1.04 }}
               transition={{ duration: (SLIDE_INTERVAL / 1000) + 1.5, ease: "linear" }}
               /* This is the biggest picture on the page and the first thing a
                  visitor sees, so ask the browser to fetch it ahead of the rest. */
@@ -446,7 +452,10 @@ export default function HomePage() {
 
         {/* Hero content */}
         <div className={cn("relative z-10 flex items-center", HERO_HEIGHT)}>
-          <div className="container pt-28 pb-24 md:pt-32 md:pb-28">
+          {/* Top padding clears the fixed header; the generous bottom padding
+              keeps the words and the figures above the slide dots and the
+              scroll cue, which sit at the foot of a full-height hero. */}
+          <div className="container pt-28 short:pt-16 pb-44 short:pb-28 md:pt-32 md:pb-40">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide}
@@ -457,7 +466,7 @@ export default function HomePage() {
                 className="max-w-3xl"
               >
                 {/* Staggered word reveal */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-[1.1]">
+                <h1 className="text-[1.6rem] short:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-white leading-[1.12]">
                   {/* Words rise in one at a time. They used to un-blur as
                       well; animated blur is one of the most expensive things
                       a phone can be asked to draw, and it was happening on
@@ -479,7 +488,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8, duration: 0.6 }}
-                  className="mt-5 md:mt-6 text-base md:text-xl text-white/80 leading-relaxed max-w-2xl"
+                  className="mt-4 short:mt-2.5 md:mt-6 text-base short:text-sm md:text-xl text-white/85 leading-relaxed max-w-2xl"
                 >
                   {slide.subtitle}
                 </motion.p>
@@ -488,15 +497,15 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.1, duration: 0.5 }}
-                  className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4"
+                  className="mt-6 short:mt-4 flex flex-row flex-wrap gap-3 sm:gap-4"
                 >
                   <Link to={slide.cta.link}>
-                    <Button className="w-full sm:w-auto bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-8 py-3 h-auto font-heading font-semibold text-base shadow-lg shadow-cta/30">
+                    <Button className="w-auto bg-cta text-cta-foreground hover:bg-cta/90 rounded-full px-6 sm:px-8 py-3 short:py-2.5 h-auto font-heading font-semibold text-sm sm:text-base shadow-lg shadow-cta/30">
                       {slide.cta.label} <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                   <Link to="/contact">
-                    <Button className="w-full sm:w-auto rounded-full px-8 py-3 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading">
+                    <Button className="w-auto rounded-full px-6 sm:px-8 py-3 short:py-2.5 h-auto bg-white/20 border border-white/40 text-white hover:bg-white/30 font-heading text-sm sm:text-base">
                       {t("footer.contactUs")}
                     </Button>
                   </Link>
@@ -509,7 +518,7 @@ export default function HomePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1.3, duration: 0.5 }}
-                  className="lg:hidden mt-8 flex items-center gap-5 border-t border-white/20 pt-5"
+                  className="lg:hidden mt-7 short:mt-4 flex items-center gap-5 border-t border-white/20 pt-5 short:pt-3"
                 >
                   {[
                     { value: "703+", label: t("home.mdas") },
@@ -573,7 +582,7 @@ export default function HomePage() {
             Lifted clear of the bottom of the screen: at bottom-8 these sat
             inside the home-bar gesture strip on a modern phone, so a tap
             often went to the operating system instead of the dot. */}
-        <div className="absolute bottom-16 sm:bottom-10 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
+        <div className="absolute bottom-28 short:bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
           {slides.map((_, i) => (
             <button
               key={i}
@@ -586,6 +595,29 @@ export default function HomePage() {
             />
           ))}
         </div>
+
+        {/* ── Scroll cue ───────────────────────────────────────────
+            The hero fills the whole screen, so nothing of the next
+            section shows to tell a visitor there is more below. This
+            does that job: a real button, so tapping it takes you
+            straight to "What do you need?" rather than just hinting.
+            It stops bobbing for anyone who asked for less motion.  */}
+        <button
+          type="button"
+          onClick={() => document.getElementById("tasks")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" })}
+          className="group absolute bottom-10 short:bottom-5 sm:bottom-8 left-1/2 z-20 -translate-x-1/2 flex flex-col items-center gap-1 rounded-full px-4 py-2 text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+        >
+          <span className="font-heading text-[11px] font-semibold uppercase tracking-[0.18em]">
+            {t("home.tasksTitle")}
+          </span>
+          <motion.span
+            aria-hidden="true"
+            animate={reduceMotion ? {} : { y: [0, 5, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <ChevronDown className="h-5 w-5" />
+          </motion.span>
+        </button>
 
         {/* Two large blurred circles used to sit here. They were drawn at 5%
             opacity UNDERNEATH the scrim, so nothing of them was ever visible,
@@ -605,8 +637,11 @@ export default function HomePage() {
           Every label here is the site's own wording for that page — no
           invented names.                                              */}
       <section
+        id="tasks"
         aria-labelledby="tasks-heading"
-        className="relative z-10 border-b border-border bg-background py-10 md:py-14"
+        /* scroll-mt keeps the heading clear of the fixed header when the
+           scroll cue in the hero jumps down to here. */
+        className="relative z-10 scroll-mt-24 border-b border-border bg-background py-10 md:py-14"
       >
         <div className="container">
           <FadeInSection className="mb-6 md:mb-8">

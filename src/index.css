@@ -38,7 +38,12 @@
 
     /* Orange #ff5e14 → hsl(19, 100%, 54%) */
     --cta: 19 100% 54%;
-    --cta-foreground: 0 0% 100%;
+    /* Label on the orange buttons was white, which measured 3.05:1 — a clear
+       accessibility failure (4.5:1 is the standard). The brand orange itself
+       is UNCHANGED; only the writing on it is now near-black, which measures
+       5.88:1. Darkening the orange instead would have meant giving up
+       #ff5e14, and the colour matters more than the colour of the label. */
+    --cta-foreground: 0 0% 9%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -90,7 +95,8 @@
     --destructive-foreground: 0 0% 100%;
 
     --cta: 19 90% 48%;
-    --cta-foreground: 0 0% 100%;
+    /* Same fix in dark mode: white measured 3.71:1 here, near-black 4.84:1. */
+    --cta-foreground: 0 0% 9%;
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;

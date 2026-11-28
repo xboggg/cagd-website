@@ -17,6 +17,14 @@ export default {
       },
     },
     extend: {
+      /* `short:` targets SCREEN HEIGHT, not width — Tailwind's built-in
+         breakpoints are all width-based. The hero fills the whole screen,
+         so on a small handset (360x640) or a phone turned sideways its
+         contents would otherwise run off the bottom. Anything marked
+         `short:` tightens up when there is under 700px of height. */
+      screens: {
+        short: { raw: "(max-height: 700px)" },
+      },
       fontFamily: {
         heading: ["Poppins", "sans-serif"],
         body: ["Rubik", "sans-serif"],
